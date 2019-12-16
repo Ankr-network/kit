@@ -73,7 +73,10 @@ func (r *rabbitBroker) Subscribe(name, topic string, reliable, requeue bool, han
 		for d := range deliveries {
 			msg := h.newMessage()
 			if err := proto.Unmarshal(d.Body, msg); err != nil {
-				logger.Printf("proto.Unmarshal error: %v", err)
+				logger.Printf("proto.Unmarshal error: %v, %s", err, d.Body)
+				if err := d.Nack(false, false); err != nil {
+					log.Printf("Nack error: %v", err)
+				}
 				continue
 			}
 
