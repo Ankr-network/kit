@@ -17,9 +17,50 @@ type Connection struct {
 	*amqp.Connection
 }
 
+// Dial wrap amqp.Dial, dial and get a reconnect connection
+func Dial(url string) (*Connection, error) {
+	conn, err := amqp.Dial(url)
+	if err != nil {
+		return nil, err
+	}
+
+	connection := &Connection{
+		Connection: conn,
+	}
+
+	go func() {
+		for {
+			reason, ok := <-connection.Connection.NotifyClose(make(chan *amqp.Error))
+			// exit this goroutine if closed by developer
+			if !ok {
+				logger.Print("connection closed")
+				break
+			}
+			logger.Printf("connection closed, reason: %v", reason)
+
+			// reconnect if not closed by developer
+			for {
+				// wait 1s for reconnect
+				time.Sleep(connectionReconnectDelay * time.Second)
+
+				conn, err := amqp.Dial(url)
+				if err == nil {
+					connection.Connection = conn
+					logger.Print("reconnect success")
+					break
+				}
+
+				logger.Printf("reconnect failed, err: %v", err)
+			}
+		}
+	}()
+
+	return connection, nil
+}
+
 // Channel wrap amqp.Connection.Channel, get a auto reconnect channel
 func (c *Connection) Channel(reconnect bool) (*Channel, error) {
-	ch, err := channel(c.Connection)
+	ch, err := c.Connection.Channel()
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +88,7 @@ func (c *Connection) Channel(reconnect bool) (*Channel, error) {
 					// wait 1s for connection reconnect
 					time.Sleep(channelReconnectDelay * time.Second)
 
-					ch, err := channel(c.Connection)
+					ch, err := c.Connection.Channel()
 					if err == nil {
 						logger.Print("channel recreate success")
 						resultChannel.Channel = ch
@@ -60,47 +101,6 @@ func (c *Connection) Channel(reconnect bool) (*Channel, error) {
 	}
 
 	return resultChannel, nil
-}
-
-// Dial wrap amqp.Dial, dial and get a reconnect connection
-func Dial(url string) (*Connection, error) {
-	conn, err := dial(url)
-	if err != nil {
-		return nil, err
-	}
-
-	connection := &Connection{
-		Connection: conn,
-	}
-
-	go func() {
-		for {
-			reason, ok := <-connection.Connection.NotifyClose(make(chan *amqp.Error))
-			// exit this goroutine if closed by developer
-			if !ok {
-				logger.Print("connection closed")
-				break
-			}
-			logger.Printf("connection closed, reason: %v", reason)
-
-			// reconnect if not closed by developer
-			for {
-				// wait 1s for reconnect
-				time.Sleep(connectionReconnectDelay * time.Second)
-
-				conn, err := dial(url)
-				if err == nil {
-					connection.Connection = conn
-					logger.Print("reconnect success")
-					break
-				}
-
-				logger.Printf("reconnect failed, err: %v", err)
-			}
-		}
-	}()
-
-	return connection, nil
 }
 
 // Channel amqp.Channel wrapper

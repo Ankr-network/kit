@@ -1,89 +1,92 @@
 package rabbitmq
 
 import (
-	"fmt"
+	"errors"
+	"github.com/Ankr-network/kit/broker"
 	"github.com/golang/protobuf/proto"
 	"github.com/streadway/amqp"
 )
 
+var (
+	ErrPublishMessageNotAck = errors.New("message not ack by broker")
+)
+
 type rabbitPublisher struct {
+	broker   *rabbitBroker
 	reliable bool
-	url      string
 	topic    string
 	conn     *Connection
 }
 
-func (p *rabbitPublisher) Connect() error {
-	conn, err := Dial(p.url)
+func newRabbitPublisher(broker *rabbitBroker, topic string, reliable bool) (*rabbitPublisher, error) {
+	out := &rabbitPublisher{
+		broker:   broker,
+		reliable: reliable,
+		topic:    topic,
+	}
+
+	if err := out.init(); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func (rp *rabbitPublisher) init() error {
+	conn, err := Dial(rp.broker.url)
 	if err != nil {
 		return err
 	}
 
-	channel, err := conn.Channel(false)
-	if err != nil {
-		if err := conn.Close(); err != nil {
-			logger.Printf("Connection.Close error: %v", err)
-		}
-		return err
-	}
-	defer func() {
-		if err := channel.Close(); err != nil {
-			logger.Printf("Channel.Close error: %v", err)
-		}
-	}()
-
-	if err := exchangeDeclare(defaultExchange, channel.Channel); err != nil {
-		if err := conn.Close(); err != nil {
-			logger.Printf("Connection.Close error: %v", err)
-		}
-		return err
-	}
-
-	p.conn = conn
+	rp.conn = conn
 
 	return nil
 }
 
-func (p *rabbitPublisher) Close() error {
-	return p.conn.Close()
+func (rp *rabbitPublisher) Close() error {
+	return rp.conn.Close()
 }
 
-func (p *rabbitPublisher) Publish(m interface{}) error {
-	// ever single channel for publish
-	channel, err := p.conn.Channel(false)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := channel.Close(); err != nil {
-			logger.Printf("Channel.Close error %v", err)
-		}
-	}()
-
+func (rp *rabbitPublisher) Publish(m interface{}) error {
 	msg, ok := m.(proto.Message)
 	if !ok {
 		return ErrMessageIsNotProtoMessage
 	}
+	return rp.doPublish(rp.topic, msg)
+}
+
+func (rp *rabbitPublisher) PublishMessage(msg *broker.Message) error {
+	return rp.doPublish(msg.Topic, msg.Value)
+}
+
+func (rp *rabbitPublisher) doPublish(topic string, msg proto.Message) error {
 	body, err := proto.Marshal(msg)
 	if err != nil {
-		return fmt.Errorf("proto.Marshal error: %w", err)
+		return err
 	}
 	publishing := amqp.Publishing{
 		ContentType: "application/protobuf",
 		Body:        body,
 	}
 
-	if p.reliable {
-		if err := channel.Confirm(false); err != nil {
-			return fmt.Errorf("Channel.Confirm error: %w", err)
+	// ever single channel for publish
+	ch, err := rp.conn.Channel(false)
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+
+	if rp.reliable {
+		if err := ch.Confirm(false); err != nil {
+			return err
 		}
 
-		confirmCh := channel.NotifyPublish(make(chan amqp.Confirmation, 1))
+		confirmCh := ch.NotifyPublish(make(chan amqp.Confirmation, 1))
 
 		publishing.DeliveryMode = amqp.Persistent
 
-		if err := channel.Publish(defaultExchange, p.topic, false, false, publishing); err != nil {
-			return fmt.Errorf("channel.Publish error: %w", err)
+		if err := ch.Publish(rp.broker.exchange, topic, false, false, publishing); err != nil {
+			return err
 		}
 
 		confirm := <-confirmCh
@@ -91,8 +94,8 @@ func (p *rabbitPublisher) Publish(m interface{}) error {
 			return ErrPublishMessageNotAck
 		}
 	} else {
-		if err := channel.Publish(defaultExchange, p.topic, false, false, publishing); err != nil {
-			return fmt.Errorf("channel.Publish error: %w", err)
+		if err := ch.Publish(rp.broker.exchange, topic, false, false, publishing); err != nil {
+			return err
 		}
 	}
 

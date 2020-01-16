@@ -5,59 +5,99 @@ import (
 )
 
 type rabbitSubscriber struct {
-	reliable bool
+	broker   *rabbitBroker
 	name     string
-	url      string
 	topic    string
+	reliable bool
 	conn     *Connection
 	channel  *Channel
+	isErrSub bool
 }
 
-func (s *rabbitSubscriber) Connect() error {
-	conn, err := Dial(s.url)
+func newRabbitSubscriber(broker *rabbitBroker, name, topic string, reliable bool) (*rabbitSubscriber, error) {
+	out := &rabbitSubscriber{
+		broker:   broker,
+		name:     name,
+		topic:    topic,
+		reliable: reliable,
+		isErrSub: false,
+	}
+	if err := out.init(); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func newErrRabbitSubscriber(broker *rabbitBroker, name, errTopic string) (*rabbitSubscriber, error) {
+	out := &rabbitSubscriber{
+		broker:   broker,
+		name:     name,
+		topic:    errTopic,
+		reliable: true,
+		isErrSub: true,
+	}
+	if err := out.init(); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func (rs *rabbitSubscriber) init() error {
+	conn, err := Dial(rs.broker.url)
 	if err != nil {
 		return err
 	}
 
-	channel, err := conn.Channel(true)
+	ch, err := conn.Channel(true)
 	if err != nil {
 		if err := conn.Close(); err != nil {
-			logger.Printf("Connection.Close error %v", err)
+			logger.Printf("conn.Close error: %v", err)
 		}
 		return err
 	}
 
-	if err := exchangeDeclare(defaultExchange, channel.Channel); err != nil {
+	var dlx string
+	if rs.reliable && !rs.isErrSub {
+		dlx = rs.broker.dlx
+	}
+
+	if err := queueDeclare(rs.name, rs.topic, dlx, rs.reliable, conn.Connection); err != nil {
 		if err := conn.Close(); err != nil {
-			logger.Printf("Connection.Close error %v", err)
+			logger.Printf("conn.Close error %v", err)
 		}
 		return err
 	}
 
-	if err := queueDeclare(s.name, s.reliable, channel.Channel); err != nil {
+	var exchange string
+	if rs.isErrSub {
+		exchange = rs.broker.dlx
+	} else {
+		exchange = rs.broker.exchange
+	}
+
+	if err := queueBind(rs.name, rs.topic, exchange, ch.Channel); err != nil {
 		if err := conn.Close(); err != nil {
-			logger.Printf("Connection.Close error %v", err)
+			logger.Printf("conn.Close error %v", err)
 		}
 		return err
 	}
 
-	if err := queueBind(s.name, s.topic, defaultExchange, channel.Channel); err != nil {
-		if err := conn.Close(); err != nil {
-			logger.Printf("Connection.Close error %v", err)
-		}
-		return err
-	}
-
-	s.conn = conn
-	s.channel = channel
+	rs.conn = conn
+	rs.channel = ch
 
 	return nil
 }
 
-func (s *rabbitSubscriber) Close() error {
-	return s.conn.Close()
+func (rs *rabbitSubscriber) Close() error {
+	return rs.conn.Close()
 }
 
-func (s *rabbitSubscriber) Consume() (<-chan amqp.Delivery, error) {
-	return s.channel.Consume(s.name, "", !s.reliable, false, false, false, nil)
+func (rs *rabbitSubscriber) Consume() (<-chan amqp.Delivery, error) {
+	autoAck := true
+	if rs.reliable && !rs.isErrSub {
+		autoAck = false
+	}
+	return rs.channel.Consume(rs.name, "", autoAck, false, false, false, nil)
 }

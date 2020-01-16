@@ -3,6 +3,7 @@ module github.com/Ankr-network/kit
 go 1.13
 
 require (
+	github.com/caarlos0/env/v6 v6.1.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis v6.15.6+incompatible
 	github.com/golang/protobuf v1.3.2

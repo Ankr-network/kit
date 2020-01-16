@@ -1,76 +1,55 @@
 package rabbitmq
 
 import (
-	"errors"
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	"github.com/streadway/amqp"
-	"reflect"
 )
 
-var (
-	protoMessageType         = reflect.TypeOf((*proto.Message)(nil)).Elem()
-	errorType                = reflect.TypeOf((*error)(nil)).Elem()
-	errTypeIsNotPtr          = errors.New("type must be pointer")
-	errTypeIsNotProtoMessage = errors.New("type must be proto.Message")
-	errTypeIsNotError        = errors.New("type must be error")
-)
-
-func channel(conn *amqp.Connection) (*amqp.Channel, error) {
-	channel, err := conn.Channel()
-	if err != nil {
-		return channel, fmt.Errorf("connection.Channel error: %w", err)
-	}
-	return channel, nil
-}
-
-func dial(url string) (*amqp.Connection, error) {
-	conn, err := amqp.Dial(url)
-	if err != nil {
-		return nil, fmt.Errorf("amqp.Dail error: %w", err)
-	}
-	return conn, nil
-}
-
-func exchangeDeclare(name string, channel *amqp.Channel) error {
+func topicExchangeDeclare(name string, channel *amqp.Channel) error {
 	if err := channel.ExchangeDeclare(name, "topic", true, false, false, false, nil); err != nil {
-		return fmt.Errorf("channel.ExchangeDeclare error: %w", err)
+		return err
 	}
 	return nil
 }
 
 func queueBind(queue, key, exchange string, channel *amqp.Channel) error {
 	if err := channel.QueueBind(queue, key, exchange, false, nil); err != nil {
-		return fmt.Errorf("channel.QueueBind error: %w", err)
+		return err
 	}
 	return nil
 }
 
-func queueDeclare(name string, reliable bool, channel *amqp.Channel) error {
+func queueDeclare(name, topic, dlx string, reliable bool, conn *amqp.Connection) error {
+	ch, err := conn.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+
 	args := amqp.Table{}
-	if !reliable {
+	if !reliable { // not reliable
 		args["x-message-ttl"] = 20000 // 20 second
+	} else if dlx != "" { // reliable with dlx
+		args["x-dead-letter-exchange"] = dlx
+		args["x-dead-letter-routing-key"] = fmt.Sprintf("error.%s", topic)
 	}
-	if _, err := channel.QueueDeclare(name, true, false, false, false, args); err != nil {
-		return fmt.Errorf("channel.QueueDeclare error: %w", err)
-	}
-	return nil
-}
-
-func checkIsProtoMessage(t reflect.Type) error {
-	if t.Kind() != reflect.Ptr {
-		return errTypeIsNotPtr
-	}
-
-	if !t.Implements(protoMessageType) {
-		return errTypeIsNotProtoMessage
-	}
-	return nil
-}
-
-func checkIsError(t reflect.Type) error {
-	if !t.Implements(errorType) {
-		return errTypeIsNotError
+	if _, declareErr := ch.QueueDeclare(name, true, false, false, false, args); declareErr != nil {
+		logger.Printf("try recreate queue for channel.QueueDeclare error: %v", declareErr)
+		ach, err := conn.Channel()
+		if err != nil {
+			return err
+		}
+		defer ach.Close()
+		_, err = ach.QueueDelete(name, false, true, false)
+		if err != nil {
+			logger.Printf("channel.QueueDelete error: %v", err)
+			return declareErr
+		}
+		_, err = ach.QueueDeclare(name, true, false, false, false, args)
+		if err != nil {
+			logger.Printf("channel.QueueDeclare again error: %v", err)
+			return declareErr
+		}
 	}
 	return nil
 }

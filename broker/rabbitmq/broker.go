@@ -3,64 +3,109 @@ package rabbitmq
 
 import (
 	"github.com/Ankr-network/kit/broker"
-	"github.com/golang/protobuf/proto"
-	"log"
+	"github.com/Ankr-network/kit/broker/rabbitmq/config"
+	"github.com/streadway/amqp"
 	"regexp"
 	"time"
 )
 
-const (
-	defaultRabbitURL = "amqp://guest:guest@127.0.0.1:5672"
-	defaultExchange  = "ankr.micro"
-	nackDelay        = 5
-)
+type Option func(cfg *config.Config)
+
+func WithAddr(addr string) Option {
+	return func(cfg *config.Config) {
+		cfg.URL = addr
+	}
+}
+
+func WithExchange(exchange string) Option {
+	return func(cfg *config.Config) {
+		cfg.Exchange = exchange
+	}
+}
+
+func WithDLX(dlx string) Option {
+	return func(cfg *config.Config) {
+		cfg.DLX = dlx
+	}
+}
 
 type rabbitBroker struct {
-	url string
+	url       string
+	exchange  string
+	dlx       string
+	nackDelay time.Duration
 }
 
-func NewBroker(args ...string) broker.Broker {
-	var url string
-	if len(args) == 0 {
-		url = defaultRabbitURL
-	} else if len(args) > 1 {
-		logger.Fatalf("invalid explict args, expect just url")
-	} else {
-		url = args[0]
-		if !regexp.MustCompile("^amqp(s)?://.*").MatchString(url) {
-			logger.Fatalf("invalid RabbitMQ url: %s", url)
-		}
+func NewRabbitMQBroker(opts ...Option) broker.Broker {
+	cfg, _ := config.LoadConfig()
+
+	for _, o := range opts {
+		o(cfg)
 	}
 
-	return &rabbitBroker{url: url}
+	if !regexp.MustCompile("^amqp(s)?://.*").MatchString(cfg.URL) {
+		logger.Fatalf("invalid RabbitMQ url: %s", cfg.URL)
+	}
+
+	out := &rabbitBroker{
+		url:       cfg.URL,
+		exchange:  cfg.Exchange,
+		dlx:       cfg.DLX,
+		nackDelay: cfg.NackDelay,
+	}
+
+	out.init()
+
+	return out
 }
 
-func (r *rabbitBroker) Publisher(topic string, reliable bool) (broker.Publisher, error) {
-	p := &rabbitPublisher{
-		reliable: reliable,
-		url:      r.url,
-		topic:    topic,
+func (r *rabbitBroker) init() {
+	conn, err := amqp.Dial(r.url)
+	if err != nil {
+		logger.Fatalf("amqp.Dial error: %v", err)
 	}
-	if err := p.Connect(); err != nil {
-		return nil, err
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	if err != nil {
+		logger.Fatalf("conn.Channel error: %v", err)
 	}
-	return p, nil
+	defer ch.Close()
+
+	if err := topicExchangeDeclare(r.exchange, ch); err != nil {
+		logger.Fatalf("topicExchangeDeclare error: %v", err)
+	}
+
+	if err := topicExchangeDeclare(r.dlx, ch); err != nil {
+		logger.Fatalf("topicExchangeDeclare error: %v", err)
+	}
 }
 
-func (r *rabbitBroker) Subscribe(name, topic string, reliable, requeue bool, handler interface{}) error {
-	h, err := newHandler(handler)
+func (r *rabbitBroker) TopicPublisher(topic string, opts ...broker.Option) (broker.Publisher, error) {
+	return r.createPublisher(topic, opts...)
+}
+
+func (r *rabbitBroker) MultiTopicPublisher(opts ...broker.Option) (broker.MultiTopicPublisher, error) {
+	return r.createPublisher("", opts...)
+}
+
+func (r *rabbitBroker) RegisterSubscribeHandler(name, topic string, handler interface{}, opts ...broker.Option) error {
+	brokerOptions := &broker.Options{
+		Reliable: false,
+		MaxRetry: 0,
+	}
+
+	for _, o := range opts {
+		o(brokerOptions)
+	}
+
+	h, err := newHandler(handler, brokerOptions.Reliable, brokerOptions.MaxRetry, r.nackDelay)
 	if err != nil {
 		return err
 	}
 
-	s := rabbitSubscriber{
-		reliable: reliable,
-		name:     name,
-		url:      r.url,
-		topic:    topic,
-	}
-
-	if err := s.Connect(); err != nil {
+	s, err := newRabbitSubscriber(r, name, topic, brokerOptions.Reliable)
+	if err != nil {
 		return err
 	}
 
@@ -69,32 +114,72 @@ func (r *rabbitBroker) Subscribe(name, topic string, reliable, requeue bool, han
 		return err
 	}
 
-	go func() {
-		for d := range deliveries {
-			msg := h.newMessage()
-			if err := proto.Unmarshal(d.Body, msg); err != nil {
-				logger.Printf("proto.Unmarshal error: %v, %s", err, d.Body)
-				if err := d.Nack(false, false); err != nil {
-					log.Printf("Nack error: %v", err)
-				}
-				continue
-			}
-
-			if err := h.call(msg); err != nil {
-				logger.Printf("handle message error: %v, message: %v", err, msg)
-				time.Sleep(nackDelay * time.Second)
-				if err := d.Nack(false, requeue); err != nil {
-					log.Printf("Nack error: %v", err)
-				}
-			} else {
-				if s.reliable {
-					if err := d.Ack(false); err != nil {
-						logger.Printf("Ack error: %v", err)
-					}
-				}
-			}
-		}
-	}()
+	go h.consume(deliveries)
 
 	return nil
+}
+
+func (r *rabbitBroker) RegisterErrSubscribeHandler(name, topic string, handler interface{}) error {
+	h, err := newErrHandler(handler)
+	if err != nil {
+		return err
+	}
+
+	s, err := newErrRabbitSubscriber(r, name, topic)
+	if err != nil {
+		return err
+	}
+
+	deliveries, err := s.Consume()
+	if err != nil {
+		return err
+	}
+
+	go h.consume(deliveries)
+
+	return nil
+}
+
+func (r *rabbitBroker) createPublisher(topic string, opts ...broker.Option) (*rabbitPublisher, error) {
+	brokerOptions := &broker.Options{
+		Reliable: false,
+		MaxRetry: 0,
+	}
+
+	for _, o := range opts {
+		o(brokerOptions)
+	}
+
+	return newRabbitPublisher(r, topic, brokerOptions.Reliable)
+}
+
+// *** below are deprecated ***
+
+func (r *rabbitBroker) Publisher(topic string, reliable bool) (broker.Publisher, error) {
+	if reliable {
+		return r.TopicPublisher(topic, broker.Reliable())
+	} else {
+		return r.TopicPublisher(topic)
+	}
+}
+
+func (r *rabbitBroker) Subscribe(name, topic string, reliable, requeue bool, handler interface{}) error {
+	if reliable {
+		maxRetry := 0
+		if requeue {
+			maxRetry = 1
+		}
+		return r.RegisterSubscribeHandler(name, topic, handler, broker.Reliable(), broker.MaxRetry(maxRetry))
+	} else {
+		return r.RegisterSubscribeHandler(name, topic, handler)
+	}
+}
+
+// Deprecated. use NewRabbitMQBroker instead
+func NewBroker(args ...string) broker.Broker {
+	if len(args) > 0 {
+		return NewRabbitMQBroker(WithAddr(args[0]))
+	} else {
+		return NewRabbitMQBroker()
+	}
 }
