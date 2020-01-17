@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/Ankr-network/kit/auth"
+	"github.com/Ankr-network/kit/auth/config"
 	"github.com/Ankr-network/kit/auth/example/hello/pb"
 	"google.golang.org/grpc"
 	"log"
@@ -38,7 +39,7 @@ func (p *service) SayHello(ctx context.Context, req *pb.Req) (*pb.Rsp, error) {
 	}, nil
 }
 
-func (p *service) SayHelloInsecure(ctx context.Context, req *pb.Req) (*pb.Rsp, error) {
+func (p *service) SayHelloInsecure(_ context.Context, req *pb.Req) (*pb.Rsp, error) {
 	log.Printf("SayHelloInsecure receive: %v", req.Name)
 
 	return &pb.Rsp{
@@ -51,7 +52,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	verifier, err := auth.NewVerifier(auth.ExcludeMethods("/pb.Hello/SayHelloInsecure"))
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("config.LoadConfig error: %v", err)
+	}
+
+	bl := auth.NewRedisBlacklist(auth.NewRedisCliFromConfig(cfg))
+
+	verifier, err := auth.NewVerifier(auth.ExcludeMethods("/pb.Hello/SayHelloInsecure"), auth.TokenBlacklist(bl))
 	if err != nil {
 		log.Fatalf("newVerifier error:%v", err)
 	}

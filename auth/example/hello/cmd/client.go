@@ -9,6 +9,11 @@ import (
 	"log"
 )
 
+const (
+	testEmail    = "changeit"
+	testPassword = "changeit"
+)
+
 func main() {
 	conn, err := grpc.Dial("localhost:8080", grpc.WithInsecure())
 	if err != nil {
@@ -23,7 +28,7 @@ func main() {
 		},
 		Scopes: []string{"all"},
 	}
-	token, err := conf.PasswordCredentialsToken(context.TODO(), "test@ankr.com", "test")
+	token, err := conf.PasswordCredentialsToken(context.TODO(), testEmail, testPassword)
 	if err != nil {
 		log.Fatalf("get access token error: %v", err)
 	}
@@ -51,7 +56,7 @@ type insecure struct {
 	token *oauth2.Token
 }
 
-func (p *insecure) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
+func (p *insecure) GetRequestMetadata(_ context.Context, _ ...string) (map[string]string, error) {
 	return map[string]string{
 		"authorization": p.token.Type() + " " + p.token.AccessToken,
 	}, nil

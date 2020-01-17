@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"errors"
+	"github.com/Ankr-network/kit/auth/config"
 	"github.com/dgrijalva/jwt-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -11,10 +12,6 @@ import (
 	"io/ioutil"
 	"log"
 	"regexp"
-)
-
-const (
-	DefaultRSAPublicKeyPath = "/etc/ankr/secret/jwt.key.pub"
 )
 
 var (
@@ -118,7 +115,7 @@ func (p *verifier) VerifyContext(ctx context.Context) (context.Context, error) {
 
 	claim, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		log.Printf("invalid claim %+v", token.Claims)
+		logger.Printf("invalid claim %+v", token.Claims)
 		return nil, ErrInvalidClaim
 	}
 
@@ -137,9 +134,14 @@ func (p *verifier) matchMethod(method string) bool {
 func NewVerifier(opts ...VerifierOption) (Verifier, error) {
 	// default
 	options := &VerifierOptions{
-		RSAPublicKeyPath: DefaultRSAPublicKeyPath,
-		ExcludeMethods:   make([]string, 0),
+		ExcludeMethods: make([]string, 0),
 	}
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	options.RSAPublicKeyPath = cfg.Verifier.RSAPublicKeyPath
 
 	for _, o := range opts {
 		o(options)

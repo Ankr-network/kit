@@ -3,12 +3,9 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"github.com/Ankr-network/kit/auth/config"
 	"github.com/go-redis/redis"
 	"time"
-)
-
-const (
-	DefaultRedisBlacklistPrefix = "token:blacklist:"
 )
 
 var (
@@ -37,10 +34,23 @@ func WithPrefix(prefix string) RedisBlacklistOption {
 	}
 }
 
+func NewRedisCliFromConfig(cfg *config.Config) *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:        cfg.BlackList.Addr,
+		Password:    cfg.BlackList.Password,
+		DB:          cfg.BlackList.DB,
+		IdleTimeout: cfg.BlackList.IdleTimeout,
+	})
+}
+
 func NewRedisBlacklist(cmdable redis.Cmdable, opts ...RedisBlacklistOption) Blacklist {
-	options := &RedisBlacklistOptions{
-		Prefix: DefaultRedisBlacklistPrefix,
+	options := new(RedisBlacklistOptions)
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		logger.Fatalf("config.LoadConfig error: %v", err)
 	}
+	options.Prefix = cfg.BlackList.Prefix
+
 	for _, opt := range opts {
 		opt(options)
 	}
