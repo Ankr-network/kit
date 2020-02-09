@@ -33,10 +33,10 @@ func Dial(url string) (*Connection, error) {
 			reason, ok := <-connection.Connection.NotifyClose(make(chan *amqp.Error))
 			// exit this goroutine if closed by developer
 			if !ok {
-				logger.Print("connection closed")
+				logger.Info("connection closed")
 				break
 			}
-			logger.Printf("connection closed, reason: %v", reason)
+			logger.Infof("connection closed, reason: %v", reason)
 
 			// reconnect if not closed by developer
 			for {
@@ -46,11 +46,11 @@ func Dial(url string) (*Connection, error) {
 				conn, err := amqp.Dial(url)
 				if err == nil {
 					connection.Connection = conn
-					logger.Print("reconnect success")
+					logger.Info("reconnect success")
 					break
 				}
 
-				logger.Printf("reconnect failed, err: %v", err)
+				logger.Errorf("reconnect failed, err: %v", err)
 			}
 		}
 	}()
@@ -75,13 +75,13 @@ func (c *Connection) Channel(reconnect bool) (*Channel, error) {
 				reason, ok := <-resultChannel.Channel.NotifyClose(make(chan *amqp.Error))
 				// exit this goroutine if closed by developer
 				if !ok || resultChannel.IsClosed() {
-					logger.Print("channel closed")
+					logger.Info("channel closed")
 					if err := resultChannel.Close(); err != nil { // close again, ensure closed flag set when connection closed
-						logger.Printf("Channel.Close error: %v", err)
+						logger.Errorf("Channel.Close error: %v", err)
 					}
 					break
 				}
-				logger.Printf("channel closed, reason: %v", reason)
+				logger.Infof("channel closed, reason: %v", reason)
 
 				// reconnect if not closed by developer
 				for {
@@ -90,11 +90,11 @@ func (c *Connection) Channel(reconnect bool) (*Channel, error) {
 
 					ch, err := c.Connection.Channel()
 					if err == nil {
-						logger.Print("channel recreate success")
+						logger.Info("channel recreate success")
 						resultChannel.Channel = ch
 						break
 					}
-					logger.Printf("channel recreate failed, err: %v", err)
+					logger.Infof("channel recreate failed, err: %v", err)
 				}
 			}
 		}()
@@ -133,7 +133,7 @@ func (ch *Channel) Consume(queue, consumer string, autoAck, exclusive, noLocal, 
 		for {
 			d, err := ch.Channel.Consume(queue, consumer, autoAck, exclusive, noLocal, noWait, args)
 			if err != nil {
-				logger.Printf("consume failed, err: %v", err)
+				logger.Errorf("consume failed, err: %v", err)
 				time.Sleep(consumeRetryDelay * time.Second)
 				continue
 			}

@@ -53,7 +53,7 @@ func (rs *rabbitSubscriber) init() error {
 	ch, err := conn.Channel(true)
 	if err != nil {
 		if err := conn.Close(); err != nil {
-			logger.Printf("conn.Close error: %v", err)
+			logger.Errorf("conn.Close error: %v", err)
 		}
 		return err
 	}
@@ -65,7 +65,7 @@ func (rs *rabbitSubscriber) init() error {
 
 	if err := queueDeclare(rs.name, rs.topic, dlx, rs.reliable, conn.Connection); err != nil {
 		if err := conn.Close(); err != nil {
-			logger.Printf("conn.Close error %v", err)
+			logger.Errorf("conn.Close error %v", err)
 		}
 		return err
 	}
@@ -79,7 +79,7 @@ func (rs *rabbitSubscriber) init() error {
 
 	if err := queueBind(rs.name, rs.topic, exchange, ch.Channel); err != nil {
 		if err := conn.Close(); err != nil {
-			logger.Printf("conn.Close error %v", err)
+			logger.Errorf("conn.Close error %v", err)
 		}
 		return err
 	}

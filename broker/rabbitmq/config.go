@@ -1,4 +1,4 @@
-package config
+package rabbitmq
 
 import (
 	"github.com/caarlos0/env/v6"
@@ -7,8 +7,9 @@ import (
 
 type Config struct {
 	URL       string        `env:"RABBIT_URL" envDefault:"amqp://guest:guest@127.0.0.1:5672"`
-	Exchange  string        `env:"RABBIT_EXCHANGE" envDefault:"ankr.micro"`
-	DLX       string        `env:"RABBIT_DLX" envDefault:"ankr.micro.dlx"`
+	Exchange  string        `env:"RABBIT_EXCHANGE" envDefault:"ankr.topic"`
+	DLX       string        `env:"RABBIT_DLX" envDefault:"ankr.dlx"`
+	ALT       string        `env:"RABBIT_ALT" envDefault:"ankr.alt"`
 	NackDelay time.Duration `env:"RABBIT_NACK_DELAY" envDefault:"5s"`
 }
 

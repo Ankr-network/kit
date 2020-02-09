@@ -3,28 +3,27 @@ package rabbitmq
 
 import (
 	"github.com/Ankr-network/kit/broker"
-	"github.com/Ankr-network/kit/broker/rabbitmq/config"
 	"github.com/streadway/amqp"
 	"regexp"
 	"time"
 )
 
-type Option func(cfg *config.Config)
+type Option func(cfg *Config)
 
 func WithAddr(addr string) Option {
-	return func(cfg *config.Config) {
+	return func(cfg *Config) {
 		cfg.URL = addr
 	}
 }
 
 func WithExchange(exchange string) Option {
-	return func(cfg *config.Config) {
+	return func(cfg *Config) {
 		cfg.Exchange = exchange
 	}
 }
 
 func WithDLX(dlx string) Option {
-	return func(cfg *config.Config) {
+	return func(cfg *Config) {
 		cfg.DLX = dlx
 	}
 }
@@ -33,11 +32,12 @@ type rabbitBroker struct {
 	url       string
 	exchange  string
 	dlx       string
+	alt       string
 	nackDelay time.Duration
 }
 
 func NewRabbitMQBroker(opts ...Option) broker.Broker {
-	cfg, _ := config.LoadConfig()
+	cfg, _ := LoadConfig()
 
 	for _, o := range opts {
 		o(cfg)
@@ -51,6 +51,7 @@ func NewRabbitMQBroker(opts ...Option) broker.Broker {
 		url:       cfg.URL,
 		exchange:  cfg.Exchange,
 		dlx:       cfg.DLX,
+		alt:       cfg.ALT,
 		nackDelay: cfg.NackDelay,
 	}
 
@@ -72,12 +73,14 @@ func (r *rabbitBroker) init() {
 	}
 	defer ch.Close()
 
-	if err := topicExchangeDeclare(r.exchange, ch); err != nil {
-		logger.Fatalf("topicExchangeDeclare error: %v", err)
+	if err := topicExchangeDeclare(r.alt, nil, ch); err != nil {
+		logger.Fatalf("topicExchangeDeclare %s error: %v", r.alt, err)
 	}
-
-	if err := topicExchangeDeclare(r.dlx, ch); err != nil {
-		logger.Fatalf("topicExchangeDeclare error: %v", err)
+	if err := topicExchangeDeclare(r.dlx, nil, ch); err != nil {
+		logger.Fatalf("topicExchangeDeclare %s error: %v", r.dlx, err)
+	}
+	if err := topicExchangeDeclare(r.exchange, amqp.Table{"alternate-exchange": r.alt}, ch); err != nil {
+		logger.Fatalf("topicExchangeDeclare %s error: %v", r.exchange, err)
 	}
 }
 

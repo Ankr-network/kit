@@ -10,6 +10,7 @@ import (
 
 var (
 	ErrPublishMessageNotAck = errors.New("message not ack by broker")
+	ErrPublishMessageMiss   = errors.New("message cannot route to any queue")
 )
 
 type rabbitPublisher struct {
@@ -83,6 +84,14 @@ func (rp *rabbitPublisher) doPublish(topic string, msg proto.Message) error {
 		}
 
 		confirmCh := ch.NotifyPublish(make(chan amqp.Confirmation, 1))
+		returnCh := ch.NotifyReturn(make(chan amqp.Return, 1))
+
+		go func() {
+			r, ok := <-returnCh
+			if ok {
+				logger.Errorf("message return: %+v", r)
+			}
+		}()
 
 		publishing.DeliveryMode = amqp.Persistent
 
@@ -90,9 +99,13 @@ func (rp *rabbitPublisher) doPublish(topic string, msg proto.Message) error {
 			return err
 		}
 
-		confirm := <-confirmCh
-		if !confirm.Ack {
-			return ErrPublishMessageNotAck
+		select {
+		case <-returnCh:
+			return ErrPublishMessageMiss
+		case c := <-confirmCh:
+			if !c.Ack {
+				return ErrPublishMessageNotAck
+			}
 		}
 	} else {
 		if err := ch.Publish(rp.broker.exchange, topic, false, false, publishing); err != nil {

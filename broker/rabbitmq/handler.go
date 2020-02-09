@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/streadway/amqp"
-	"log"
 	"reflect"
 	"time"
 )
@@ -85,32 +84,32 @@ func (h *handler) consume(deliveries <-chan amqp.Delivery) {
 	for d := range deliveries {
 		msg := h.newMessage()
 		if err := proto.Unmarshal(d.Body, msg); err != nil {
-			logger.Printf("proto.Unmarshal error: %v, %s", err, d.Body)
+			logger.Errorf("proto.Unmarshal error: %v, %s", err, d.Body)
 			if err := d.Nack(false, false); err != nil {
-				log.Printf("Nack error: %v", err)
+				logger.Errorf("Nack error: %v", err)
 			}
 			continue
 		}
 
 		if err := h.call(msg); err != nil {
-			logger.Printf("handle message error: %v, message: %v", err, msg)
+			logger.Errorf("handle message error: %v, message: %v", err, msg)
 			if h.reliable {
 				time.Sleep(h.nackDelay)
 
 				if d.Redelivered {
 					if err := d.Nack(false, false); err != nil {
-						log.Printf("Nack error: %v", err)
+						logger.Errorf("Nack error: %v", err)
 					}
 				} else {
 					if err := d.Nack(false, h.maxRetry > 0); err != nil {
-						log.Printf("Nack error: %v", err)
+						logger.Errorf("Nack error: %v", err)
 					}
 				}
 			}
 		} else {
 			if h.reliable {
 				if err := d.Ack(false); err != nil {
-					logger.Printf("Ack error: %v", err)
+					logger.Errorf("Ack error: %v", err)
 				}
 			}
 		}
