@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"errors"
+
 	"github.com/Ankr-network/kit/broker"
 	"github.com/golang/protobuf/proto"
 	"github.com/streadway/amqp"
@@ -85,7 +86,7 @@ func (rp *rabbitPublisher) doPublish(topic string, msg proto.Message) error {
 
 		publishing.DeliveryMode = amqp.Persistent
 
-		if err := ch.Publish(rp.broker.exchange, topic, false, false, publishing); err != nil {
+		if err := ch.Publish(rp.broker.exchange, topic, true, false, publishing); err != nil {
 			return err
 		}
 
