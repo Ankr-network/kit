@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"github.com/streadway/amqp"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -15,6 +16,7 @@ const (
 // Connection amqp.Connection wrapper
 type Connection struct {
 	*amqp.Connection
+	m sync.RWMutex
 }
 
 // Dial wrap amqp.Dial, dial and get a reconnect connection
@@ -38,6 +40,7 @@ func Dial(url string) (*Connection, error) {
 			}
 			logger.Infof("connection closed, reason: %v", reason)
 
+			connection.m.Lock()
 			// reconnect if not closed by developer
 			for {
 				// wait 1s for reconnect
@@ -47,10 +50,11 @@ func Dial(url string) (*Connection, error) {
 				if err == nil {
 					connection.Connection = conn
 					logger.Info("reconnect success")
+					connection.m.Unlock()
 					break
 				}
 
-				logger.Errorf("reconnect failed, err: %v", err)
+				logger.Errorf("reconnect error: %v", err)
 			}
 		}
 	}()
@@ -60,7 +64,9 @@ func Dial(url string) (*Connection, error) {
 
 // Channel wrap amqp.Connection.Channel, get a auto reconnect channel
 func (c *Connection) Channel(reconnect bool) (*Channel, error) {
+	c.m.RLock()
 	ch, err := c.Connection.Channel()
+	c.m.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -83,18 +89,22 @@ func (c *Connection) Channel(reconnect bool) (*Channel, error) {
 				}
 				logger.Infof("channel closed, reason: %v", reason)
 
+				resultChannel.m.Lock()
 				// reconnect if not closed by developer
 				for {
 					// wait 1s for connection reconnect
 					time.Sleep(channelReconnectDelay * time.Second)
 
+					c.m.RLock()
 					ch, err := c.Connection.Channel()
+					c.m.RUnlock()
 					if err == nil {
 						logger.Info("channel recreate success")
 						resultChannel.Channel = ch
+						resultChannel.m.Unlock()
 						break
 					}
-					logger.Infof("channel recreate failed, err: %v", err)
+					logger.Errorf("channel recreate error: %v", err)
 				}
 			}
 		}()
@@ -107,6 +117,7 @@ func (c *Connection) Channel(reconnect bool) (*Channel, error) {
 type Channel struct {
 	*amqp.Channel
 	closed int32
+	m      sync.RWMutex
 }
 
 // IsClosed indicate closed by developer
@@ -131,9 +142,11 @@ func (ch *Channel) Consume(queue, consumer string, autoAck, exclusive, noLocal, 
 
 	go func() {
 		for {
+			ch.m.RLock()
 			d, err := ch.Channel.Consume(queue, consumer, autoAck, exclusive, noLocal, noWait, args)
+			ch.m.RUnlock()
 			if err != nil {
-				logger.Errorf("consume failed, err: %v", err)
+				logger.Errorf("consume error: %v", err)
 				time.Sleep(consumeRetryDelay * time.Second)
 				continue
 			}

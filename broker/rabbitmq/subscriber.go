@@ -49,8 +49,9 @@ func (rs *rabbitSubscriber) init() error {
 	if err != nil {
 		return err
 	}
-
+	conn.m.RLock()
 	ch, err := conn.Channel(true)
+	conn.m.RUnlock()
 	if err != nil {
 		if err := conn.Close(); err != nil {
 			logger.Errorf("conn.Close error: %v", err)
@@ -77,12 +78,15 @@ func (rs *rabbitSubscriber) init() error {
 		exchange = rs.broker.exchange
 	}
 
+	ch.m.RLock()
 	if err := queueBind(rs.name, rs.topic, exchange, ch.Channel); err != nil {
+		ch.m.RUnlock()
 		if err := conn.Close(); err != nil {
 			logger.Errorf("conn.Close error %v", err)
 		}
 		return err
 	}
+	ch.m.RUnlock()
 
 	rs.conn = conn
 	rs.channel = ch
@@ -99,5 +103,9 @@ func (rs *rabbitSubscriber) Consume() (<-chan amqp.Delivery, error) {
 	if rs.reliable && !rs.isErrSub {
 		autoAck = false
 	}
-	return rs.channel.Consume(rs.name, "", autoAck, false, false, false, nil)
+	rs.channel.m.RLock()
+	deliveries, err := rs.channel.Consume(rs.name, "", autoAck, false, false, false, nil)
+	rs.channel.m.RUnlock()
+	return deliveries, err
+
 }

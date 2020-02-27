@@ -72,7 +72,9 @@ func (rp *rabbitPublisher) doPublish(topic string, msg proto.Message) error {
 	}
 
 	// ever single channel for publish
+	rp.conn.m.RLock()
 	ch, err := rp.conn.Channel(false)
+	rp.conn.m.RUnlock()
 	if err != nil {
 		return err
 	}

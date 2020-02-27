@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+var (
+	rabbitUrlRegex = regexp.MustCompile(`^amqp(s)?://.+`)
+)
+
 type Option func(cfg *Config)
 
 func WithAddr(addr string) Option {
@@ -43,7 +47,7 @@ func NewRabbitMQBroker(opts ...Option) broker.Broker {
 		o(cfg)
 	}
 
-	if !regexp.MustCompile("^amqp(s)?://.*").MatchString(cfg.URL) {
+	if !rabbitUrlRegex.MatchString(cfg.URL) {
 		logger.Fatalf("invalid RabbitMQ url: %s", cfg.URL)
 	}
 
