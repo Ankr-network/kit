@@ -1,4 +1,4 @@
-package config
+package auth
 
 import (
 	"github.com/caarlos0/env/v6"
@@ -6,15 +6,15 @@ import (
 )
 
 type Config struct {
-	Verifier  Verifier
-	BlackList BlackList
+	Verifier  VerifierConfig
+	BlackList BlackListConfig
 }
 
-type Verifier struct {
+type VerifierConfig struct {
 	RSAPublicKeyPath string `env:"JWT_RSA_PUBLIC_KEY_PATH" envDefault:"/etc/ankr/secret/jwt.key.pub"`
 }
 
-type BlackList struct {
+type BlackListConfig struct {
 	Addr        string        `env:"REDIS_ADDR" envDefault:"localhost:6379"`
 	Password    string        `env:"REDIS_PASSWORD" envDefault:""`
 	IdleTimeout time.Duration `env:"REDIS_IDLE_TIMEOUT" envDefault:"25s"`

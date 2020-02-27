@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/Ankr-network/kit/auth"
-	"github.com/Ankr-network/kit/auth/config"
 	"github.com/Ankr-network/kit/auth/example/hello/pb"
 	"google.golang.org/grpc"
 	"log"
@@ -53,12 +52,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		log.Fatalf("config.LoadConfig error: %v", err)
-	}
-
-	bl := auth.NewRedisBlacklist(auth.NewRedisCliFromConfig(cfg))
+	bl := auth.NewRedisBlacklist(auth.NewRedisCliFromConfig())
 
 	verifier, err := auth.NewVerifier(auth.ExcludeMethods("/pb.Hello/SayHelloInsecure"), auth.TokenBlacklist(bl))
 	if err != nil {

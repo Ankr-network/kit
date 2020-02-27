@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rsa"
 	"errors"
-	"github.com/Ankr-network/kit/auth/config"
 	"github.com/dgrijalva/jwt-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -136,7 +135,7 @@ func NewVerifier(opts ...VerifierOption) (Verifier, error) {
 	options := &VerifierOptions{
 		ExcludeMethods: make([]string, 0),
 	}
-	cfg, err := config.LoadConfig()
+	cfg, err := LoadConfig()
 	if err != nil {
 		return nil, err
 	}
