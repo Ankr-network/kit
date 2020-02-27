@@ -32,6 +32,12 @@ func WithDLX(dlx string) Option {
 	}
 }
 
+func WithoutExchangeDeclare() Option {
+	return func(cfg *Config) {
+		cfg.DeclareExchange = false
+	}
+}
+
 type rabbitBroker struct {
 	url       string
 	exchange  string
@@ -59,7 +65,9 @@ func NewRabbitMQBroker(opts ...Option) broker.Broker {
 		nackDelay: cfg.NackDelay,
 	}
 
-	out.init()
+	if cfg.DeclareExchange {
+		out.init()
+	}
 
 	return out
 }
