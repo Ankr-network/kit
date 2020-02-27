@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"github.com/Ankr-network/kit/auth/example/hello/pb"
+	"github.com/Ankr-network/kit/log"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"log"
 )
 
 const (
@@ -14,10 +14,14 @@ const (
 	testPassword = "changeit"
 )
 
+var (
+	logger = log.Logger()
+)
+
 func main() {
 	conn, err := grpc.Dial("localhost:8080", grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("failed to dial: %v", err)
+		logger.Fatalf("failed to dial: %v", err)
 	}
 	defer conn.Close()
 	c := pb.NewHelloClient(conn)
@@ -30,22 +34,22 @@ func main() {
 	}
 	token, err := conf.PasswordCredentialsToken(context.TODO(), testEmail, testPassword)
 	if err != nil {
-		log.Fatalf("get access token error: %v", err)
+		logger.Fatalf("get access token error: %v", err)
 	}
 
 	cred := newPerRPCCredentials(token)
 
 	rsp, err := c.SayHello(context.TODO(), &pb.Req{Name: "ankr"}, grpc.PerRPCCredentials(cred))
 	if err != nil {
-		log.Fatalf("SayHello api error: %v", err)
+		logger.Fatalf("SayHello api error: %v", err)
 	}
-	log.Printf("SayHello response:%v", rsp.Message)
+	logger.Infof("SayHello response:%v", rsp.Message)
 
 	rsp, err = c.SayHelloInsecure(context.TODO(), &pb.Req{Name: "ankr"})
 	if err != nil {
-		log.Fatalf("SayHelloInsecure api error: %v", err)
+		logger.Fatalf("SayHelloInsecure api error: %v", err)
 	}
-	log.Printf("SayHelloInsecure response:%v", rsp.Message)
+	logger.Infof("SayHelloInsecure response:%v", rsp.Message)
 }
 
 func newPerRPCCredentials(token *oauth2.Token) credentials.PerRPCCredentials {

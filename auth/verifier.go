@@ -9,7 +9,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"io/ioutil"
-	"log"
 	"regexp"
 )
 
@@ -114,7 +113,7 @@ func (p *verifier) VerifyContext(ctx context.Context) (context.Context, error) {
 
 	claim, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		logger.Printf("invalid claim %+v", token.Claims)
+		logger.Infof("invalid claim %+v", token.Claims)
 		return nil, ErrInvalidClaim
 	}
 
@@ -157,7 +156,8 @@ func NewVerifier(opts ...VerifierOption) (Verifier, error) {
 	for i, m := range options.ExcludeMethods {
 		r, err := regexp.Compile(m)
 		if err != nil {
-			log.Printf("error: invalid method pattern: %v", err)
+			logger.Errorf("error: invalid method pattern: %v", err)
+			return nil, err
 		}
 		excludePatterns[i] = r
 	}

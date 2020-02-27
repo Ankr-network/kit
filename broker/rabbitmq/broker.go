@@ -2,6 +2,7 @@
 package rabbitmq
 
 import (
+	"fmt"
 	"github.com/Ankr-network/kit/broker"
 	"github.com/streadway/amqp"
 	"regexp"
@@ -32,12 +33,6 @@ func WithDLX(dlx string) Option {
 	}
 }
 
-func WithoutExchangeDeclare() Option {
-	return func(cfg *Config) {
-		cfg.DeclareExchange = false
-	}
-}
-
 type rabbitBroker struct {
 	url       string
 	exchange  string
@@ -47,6 +42,29 @@ type rabbitBroker struct {
 }
 
 func NewRabbitMQBroker(opts ...Option) broker.Broker {
+	cfg := new(Config)
+	for _, o := range opts {
+		o(cfg)
+	}
+
+	if !rabbitUrlRegex.MatchString(cfg.URL) {
+		logger.Fatalf("invalid RabbitMQ url: %s", cfg.URL)
+	}
+
+	out := &rabbitBroker{
+		url:       cfg.URL,
+		exchange:  cfg.Exchange,
+		dlx:       cfg.DLX,
+		alt:       cfg.ALT,
+		nackDelay: cfg.NackDelay,
+	}
+
+	out.init()
+
+	return out
+}
+
+func NewRabbitMQBrokerFromConfig(opts ...Option) broker.Broker {
 	cfg, _ := LoadConfig()
 
 	for _, o := range opts {
@@ -65,9 +83,7 @@ func NewRabbitMQBroker(opts ...Option) broker.Broker {
 		nackDelay: cfg.NackDelay,
 	}
 
-	if cfg.DeclareExchange {
-		out.init()
-	}
+	out.init()
 
 	return out
 }
@@ -85,13 +101,19 @@ func (r *rabbitBroker) init() {
 	}
 	defer ch.Close()
 
-	if err := topicExchangeDeclare(r.alt, nil, ch); err != nil {
-		logger.Fatalf("topicExchangeDeclare %s error: %v", r.alt, err)
+	if r.dlx != "" {
+		if err := topicExchangeDeclare(r.dlx, nil, ch); err != nil {
+			logger.Fatalf("topicExchangeDeclare %s error: %v", r.dlx, err)
+		}
 	}
-	if err := topicExchangeDeclare(r.dlx, nil, ch); err != nil {
-		logger.Fatalf("topicExchangeDeclare %s error: %v", r.dlx, err)
+	var exchangeArgs amqp.Table
+	if r.alt != "" {
+		if err := topicExchangeDeclare(r.alt, nil, ch); err != nil {
+			logger.Fatalf("topicExchangeDeclare %s error: %v", r.alt, err)
+		}
+		exchangeArgs = amqp.Table{"alternate-exchange": r.alt}
 	}
-	if err := topicExchangeDeclare(r.exchange, amqp.Table{"alternate-exchange": r.alt}, ch); err != nil {
+	if err := topicExchangeDeclare(r.exchange, exchangeArgs, ch); err != nil {
 		logger.Fatalf("topicExchangeDeclare %s error: %v", r.exchange, err)
 	}
 }
@@ -135,6 +157,9 @@ func (r *rabbitBroker) RegisterSubscribeHandler(name, topic string, handler inte
 }
 
 func (r *rabbitBroker) RegisterErrSubscribeHandler(name, topic string, handler interface{}) error {
+	if r.dlx == "" {
+		return fmt.Errorf("broker without dead-letter exchange")
+	}
 	h, err := newErrHandler(handler)
 	if err != nil {
 		return err

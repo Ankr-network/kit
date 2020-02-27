@@ -2,6 +2,8 @@ module github.com/Ankr-network/kit
 
 go 1.13
 
+replace github.com/sirupsen/logrus => github.com/leostudio/logrus v1.4.3
+
 require (
 	github.com/caarlos0/env/v6 v6.1.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

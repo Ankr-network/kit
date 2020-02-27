@@ -5,33 +5,37 @@ import (
 	"fmt"
 	"github.com/Ankr-network/kit/auth"
 	"github.com/Ankr-network/kit/auth/example/hello/pb"
+	"github.com/Ankr-network/kit/log"
 	"google.golang.org/grpc"
-	"log"
 	"net"
+)
+
+var (
+	logger = log.Logger()
 )
 
 type service struct{}
 
 func (p *service) SayHello(ctx context.Context, req *pb.Req) (*pb.Rsp, error) {
-	log.Printf("SayHello receive: %v", req.Name)
+	logger.Infof("SayHello receive: %v", req.Name)
 
 	claim, err := auth.GetClaim(ctx)
 	if err != nil {
-		log.Printf("GetClaim error: %v", err)
+		logger.Errorf("GetClaim error: %v", err)
 	}
-	log.Printf("claim: %+v", claim)
+	logger.Infof("claim: %+v", claim)
 
 	uid, err := auth.GetUID(ctx)
 	if err != nil {
-		log.Printf("GetUID error: %v", err)
+		logger.Errorf("GetUID error: %v", err)
 	}
-	log.Printf("uid: %+v", uid)
+	logger.Infof("uid: %+v", uid)
 
 	cid, err := auth.GetClientID(ctx)
 	if err != nil {
-		log.Printf("GetClientID error: %v", err)
+		logger.Errorf("GetClientID error: %v", err)
 	}
-	log.Printf("cid: %+v", cid)
+	logger.Infof("cid: %+v", cid)
 
 	return &pb.Rsp{
 		Message: fmt.Sprintf("hello %s", req.Name),
@@ -39,7 +43,7 @@ func (p *service) SayHello(ctx context.Context, req *pb.Req) (*pb.Rsp, error) {
 }
 
 func (p *service) SayHelloInsecure(_ context.Context, req *pb.Req) (*pb.Rsp, error) {
-	log.Printf("SayHelloInsecure receive: %v", req.Name)
+	logger.Infof("SayHelloInsecure receive: %v", req.Name)
 
 	return &pb.Rsp{
 		Message: fmt.Sprintf("insecure hello %s", req.Name),
@@ -49,18 +53,18 @@ func (p *service) SayHelloInsecure(_ context.Context, req *pb.Req) (*pb.Rsp, err
 func main() {
 	lis, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		logger.Fatalf("failed to listen: %v", err)
 	}
 
 	bl := auth.NewRedisBlacklist(auth.NewRedisCliFromConfig())
 
 	verifier, err := auth.NewVerifier(auth.ExcludeMethods("/pb.Hello/SayHelloInsecure"), auth.TokenBlacklist(bl))
 	if err != nil {
-		log.Fatalf("newVerifier error:%v", err)
+		logger.Fatalf("newVerifier error:%v", err)
 	}
 	s := grpc.NewServer(grpc.UnaryInterceptor(verifier.GRPCUnaryInterceptor()))
 	pb.RegisterHelloServer(s, &service{})
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		logger.Fatalf("failed to serve: %v", err)
 	}
 }

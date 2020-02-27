@@ -1,8 +1,7 @@
 package auth
 
 import (
-	"log"
-	"os"
+	"github.com/Ankr-network/kit/log"
 )
 
-var logger = log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
+var logger = log.Logger()
