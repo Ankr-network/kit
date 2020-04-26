@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/Ankr-network/kit/log"
+	"github.com/Ankr-network/kit/mlog"
 )
 
-var logger = log.Logger()
+var log = mlog.Logger("auth")

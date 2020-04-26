@@ -3,13 +3,13 @@ package rabbitmq
 import (
 	"fmt"
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 )
 
-func topicExchangeDeclare(name string, args amqp.Table, channel *amqp.Channel) error {
+func mustTopicExchangeDeclare(name string, args amqp.Table, channel *amqp.Channel) {
 	if err := channel.ExchangeDeclare(name, "topic", true, false, false, false, args); err != nil {
-		return err
+		log.Fatal("channel.ExchangeDeclare error: %v", zap.String("exchange", name), zap.Error(err))
 	}
-	return nil
 }
 
 func queueBind(queue, key, exchange string, channel *amqp.Channel) error {
@@ -34,7 +34,7 @@ func queueDeclare(name, topic, dlx string, reliable bool, conn *amqp.Connection)
 		args["x-dead-letter-routing-key"] = fmt.Sprintf("error.%s", topic)
 	}
 	if _, declareErr := ch.QueueDeclare(name, true, false, false, false, args); declareErr != nil {
-		logger.Infof("try recreate queue for channel.QueueDeclare error: %v", declareErr)
+		log.Info("try recreate queue for channel.QueueDeclare error", zap.Error(declareErr))
 		ach, err := conn.Channel()
 		if err != nil {
 			return err
@@ -42,12 +42,12 @@ func queueDeclare(name, topic, dlx string, reliable bool, conn *amqp.Connection)
 		defer ach.Close()
 		_, err = ach.QueueDelete(name, false, true, false)
 		if err != nil {
-			logger.Errorf("channel.QueueDelete error: %v", err)
+			log.Error("channel.QueueDelete error", zap.Error(err))
 			return declareErr
 		}
 		_, err = ach.QueueDeclare(name, true, false, false, false, args)
 		if err != nil {
-			logger.Errorf("channel.QueueDeclare again error: %v", err)
+			log.Error("channel.QueueDeclare again error", zap.Error(err))
 			return declareErr
 		}
 	}

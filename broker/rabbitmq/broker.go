@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Ankr-network/kit/broker"
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 	"regexp"
 	"time"
 )
@@ -48,7 +49,7 @@ func NewRabbitMQBroker(opts ...Option) broker.Broker {
 	}
 
 	if !rabbitUrlRegex.MatchString(cfg.URL) {
-		logger.Fatalf("invalid RabbitMQ url: %s", cfg.URL)
+		log.Fatal("invalid RabbitMQ url", zap.String("url", cfg.URL))
 	}
 
 	out := &rabbitBroker{
@@ -72,7 +73,7 @@ func NewRabbitMQBrokerFromConfig(opts ...Option) broker.Broker {
 	}
 
 	if !rabbitUrlRegex.MatchString(cfg.URL) {
-		logger.Fatalf("invalid RabbitMQ url: %s", cfg.URL)
+		log.Fatal("invalid RabbitMQ url", zap.String("url", cfg.URL))
 	}
 
 	out := &rabbitBroker{
@@ -91,31 +92,25 @@ func NewRabbitMQBrokerFromConfig(opts ...Option) broker.Broker {
 func (r *rabbitBroker) init() {
 	conn, err := amqp.Dial(r.url)
 	if err != nil {
-		logger.Fatalf("amqp.Dial error: %v", err)
+		log.Fatal("amqp.Dial error", zap.Error(err))
 	}
 	defer conn.Close()
 
 	ch, err := conn.Channel()
 	if err != nil {
-		logger.Fatalf("conn.Channel error: %v", err)
+		log.Fatal("conn.Channel error", zap.Error(err))
 	}
 	defer ch.Close()
 
 	if r.dlx != "" {
-		if err := topicExchangeDeclare(r.dlx, nil, ch); err != nil {
-			logger.Fatalf("topicExchangeDeclare %s error: %v", r.dlx, err)
-		}
+		mustTopicExchangeDeclare(r.dlx, nil, ch)
 	}
 	var exchangeArgs amqp.Table
 	if r.alt != "" {
-		if err := topicExchangeDeclare(r.alt, nil, ch); err != nil {
-			logger.Fatalf("topicExchangeDeclare %s error: %v", r.alt, err)
-		}
+		mustTopicExchangeDeclare(r.alt, nil, ch)
 		exchangeArgs = amqp.Table{"alternate-exchange": r.alt}
 	}
-	if err := topicExchangeDeclare(r.exchange, exchangeArgs, ch); err != nil {
-		logger.Fatalf("topicExchangeDeclare %s error: %v", r.exchange, err)
-	}
+	mustTopicExchangeDeclare(r.exchange, exchangeArgs, ch)
 }
 
 func (r *rabbitBroker) TopicPublisher(topic string, opts ...broker.Option) (broker.Publisher, error) {

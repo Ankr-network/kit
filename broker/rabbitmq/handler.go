@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 	"reflect"
 	"time"
 )
@@ -84,32 +85,31 @@ func (h *handler) consume(deliveries <-chan amqp.Delivery) {
 	for d := range deliveries {
 		msg := h.newMessage()
 		if err := proto.Unmarshal(d.Body, msg); err != nil {
-			logger.Errorf("proto.Unmarshal error: %v, %s", err, d.Body)
+			log.Error("proto.Unmarshal error", zap.Error(err), zap.ByteString("body", d.Body))
 			if err := d.Nack(false, false); err != nil {
-				logger.Errorf("Nack error: %v", err)
+				log.Error("Nack error", zap.Error(err))
 			}
 			continue
 		}
 
 		if err := h.call(msg); err != nil {
-			logger.Errorf("handle message error: %v, message: %v", err, msg)
 			if h.reliable {
 				time.Sleep(h.nackDelay)
 
 				if d.Redelivered {
 					if err := d.Nack(false, false); err != nil {
-						logger.Errorf("Nack error: %v", err)
+						log.Error("Nack error", zap.Error(err))
 					}
 				} else {
 					if err := d.Nack(false, h.maxRetry > 0); err != nil {
-						logger.Errorf("Nack error: %v", err)
+						log.Error("Nack error", zap.Error(err))
 					}
 				}
 			}
 		} else {
 			if h.reliable {
 				if err := d.Ack(false); err != nil {
-					logger.Errorf("Ack error: %v", err)
+					log.Error("Ack error", zap.Error(err))
 				}
 			}
 		}

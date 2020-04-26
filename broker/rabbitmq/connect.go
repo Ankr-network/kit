@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -35,10 +36,10 @@ func Dial(url string) (*Connection, error) {
 			reason, ok := <-connection.Connection.NotifyClose(make(chan *amqp.Error))
 			// exit this goroutine if closed by developer
 			if !ok {
-				logger.Info("connection closed")
+				log.Info("connection closed")
 				break
 			}
-			logger.Infof("connection closed, reason: %v", reason)
+			log.Info("connection closed", zap.Reflect("reason", reason))
 
 			connection.m.Lock()
 			// reconnect if not closed by developer
@@ -49,12 +50,12 @@ func Dial(url string) (*Connection, error) {
 				conn, err := amqp.Dial(url)
 				if err == nil {
 					connection.Connection = conn
-					logger.Info("reconnect success")
+					log.Info("reconnect success")
 					connection.m.Unlock()
 					break
 				}
 
-				logger.Errorf("reconnect error: %v", err)
+				log.Error("reconnect error", zap.Error(err))
 			}
 		}
 	}()
@@ -81,13 +82,13 @@ func (c *Connection) Channel(reconnect bool) (*Channel, error) {
 				reason, ok := <-resultChannel.Channel.NotifyClose(make(chan *amqp.Error))
 				// exit this goroutine if closed by developer
 				if !ok || resultChannel.IsClosed() {
-					logger.Info("channel closed")
+					log.Info("channel closed")
 					if err := resultChannel.Close(); err != nil { // close again, ensure closed flag set when connection closed
-						logger.Errorf("Channel.Close error: %v", err)
+						log.Error("Channel.Close error", zap.Error(err))
 					}
 					break
 				}
-				logger.Infof("channel closed, reason: %v", reason)
+				log.Info("channel closed", zap.Reflect("reason", reason))
 
 				resultChannel.m.Lock()
 				// reconnect if not closed by developer
@@ -99,12 +100,12 @@ func (c *Connection) Channel(reconnect bool) (*Channel, error) {
 					ch, err := c.Connection.Channel()
 					c.m.RUnlock()
 					if err == nil {
-						logger.Info("channel recreate success")
+						log.Info("channel recreate success")
 						resultChannel.Channel = ch
 						resultChannel.m.Unlock()
 						break
 					}
-					logger.Errorf("channel recreate error: %v", err)
+					log.Error("channel recreate error", zap.Error(err))
 				}
 			}
 		}()
@@ -146,7 +147,7 @@ func (ch *Channel) Consume(queue, consumer string, autoAck, exclusive, noLocal, 
 			d, err := ch.Channel.Consume(queue, consumer, autoAck, exclusive, noLocal, noWait, args)
 			ch.m.RUnlock()
 			if err != nil {
-				logger.Errorf("consume error: %v", err)
+				log.Error("consume error", zap.Error(err))
 				time.Sleep(consumeRetryDelay * time.Second)
 				continue
 			}

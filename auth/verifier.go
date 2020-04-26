@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"github.com/dgrijalva/jwt-go"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -113,7 +114,7 @@ func (p *verifier) VerifyContext(ctx context.Context) (context.Context, error) {
 
 	claim, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		logger.Infof("invalid claim %+v", token.Claims)
+		log.Info("invalid claim", zap.Reflect("claims", token.Claims))
 		return nil, ErrInvalidClaim
 	}
 
@@ -156,7 +157,7 @@ func NewVerifier(opts ...VerifierOption) (Verifier, error) {
 	for i, m := range options.ExcludeMethods {
 		r, err := regexp.Compile(m)
 		if err != nil {
-			logger.Errorf("error: invalid method pattern: %v", err)
+			log.Error("invalid method pattern error", zap.Error(err))
 			return nil, err
 		}
 		excludePatterns[i] = r

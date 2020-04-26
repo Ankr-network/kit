@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 )
 
 type rabbitSubscriber struct {
@@ -54,7 +55,7 @@ func (rs *rabbitSubscriber) init() error {
 	conn.m.RUnlock()
 	if err != nil {
 		if err := conn.Close(); err != nil {
-			logger.Errorf("conn.Close error: %v", err)
+			log.Error("conn.Close error", zap.Error(err))
 		}
 		return err
 	}
@@ -66,7 +67,7 @@ func (rs *rabbitSubscriber) init() error {
 
 	if err := queueDeclare(rs.name, rs.topic, dlx, rs.reliable, conn.Connection); err != nil {
 		if err := conn.Close(); err != nil {
-			logger.Errorf("conn.Close error %v", err)
+			log.Error("conn.Close error", zap.Error(err))
 		}
 		return err
 	}
@@ -82,7 +83,7 @@ func (rs *rabbitSubscriber) init() error {
 	if err := queueBind(rs.name, rs.topic, exchange, ch.Channel); err != nil {
 		ch.m.RUnlock()
 		if err := conn.Close(); err != nil {
-			logger.Errorf("conn.Close error %v", err)
+			log.Error("conn.Close error", zap.Error(err))
 		}
 		return err
 	}

@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"errors"
+	"go.uber.org/zap"
 
 	"github.com/Ankr-network/kit/broker"
 	"github.com/golang/protobuf/proto"
@@ -91,7 +92,7 @@ func (rp *rabbitPublisher) doPublish(topic string, msg proto.Message) error {
 		go func() {
 			r, ok := <-returnCh
 			if ok {
-				logger.Errorf("message return: %+v", r)
+				log.Error("message return", zap.Reflect("return", r))
 			}
 		}()
 

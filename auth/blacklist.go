@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -36,7 +37,7 @@ func WithPrefix(prefix string) RedisBlacklistOption {
 func NewRedisCliFromConfig() *redis.Client {
 	cfg, err := LoadConfig()
 	if err != nil {
-		logger.Fatalf("LoadConfig error: %v", err)
+		log.Fatal("LoadConfig error", zap.Error(err))
 	}
 	return redis.NewClient(&redis.Options{
 		Addr:        cfg.BlackList.Addr,
@@ -50,7 +51,7 @@ func NewRedisBlacklist(cmdable redis.Cmdable, opts ...RedisBlacklistOption) Blac
 	options := new(RedisBlacklistOptions)
 	cfg, err := LoadConfig()
 	if err != nil {
-		logger.Fatalf("config.LoadConfig error: %v", err)
+		log.Fatal("config.LoadConfig error", zap.Error(err))
 	}
 	options.Prefix = cfg.BlackList.Prefix
 

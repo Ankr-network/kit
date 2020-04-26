@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 	"strings"
 )
 
@@ -21,37 +22,37 @@ func Copy(srcUrl, dstUrl, srcQ, dstEx string, nums int) {
 func Forward(srcUrl, dstUrl string, srcQ, dstEx string, nums int, routeKeyConvert RouteKeyConverter, msgConvert MsgConverter) {
 	source, err := amqp.Dial(srcUrl)
 	if err != nil {
-		logger.Fatalf("connection.open source: %s", err)
+		log.Fatal("connection.open source error", zap.Error(err))
 	}
 	defer source.Close()
 
 	chs, err := source.Channel()
 	if err != nil {
-		logger.Fatalf("channel.open source: %s", err)
+		log.Fatal("channel.open source error", zap.Error(err))
 	}
 
 	shovel, err := chs.Consume(srcQ, "shovel", false, false, false, false, nil)
 	if err != nil {
-		logger.Fatalf("basic.consume source: %s", err)
+		log.Fatal("basic.consume source error", zap.Error(err))
 	}
 
 	// Setup the destination of the store and forward
 	destination, err := amqp.Dial(dstUrl)
 	if err != nil {
-		logger.Fatalf("connection.open destination: %s", err)
+		log.Fatal("connection.open destination error", zap.Error(err))
 	}
 	defer destination.Close()
 
 	chd, err := destination.Channel()
 	if err != nil {
-		logger.Fatalf("channel.open destination: %s", err)
+		log.Fatal("channel.open destination error", zap.Error(err))
 	}
 
 	// Buffer of 1 for our single outstanding publishing
 	confirms := chd.NotifyPublish(make(chan amqp.Confirmation, 1))
 
 	if err := chd.Confirm(false); err != nil {
-		logger.Fatalf("confirm.select destination: %s", err)
+		log.Fatal("confirm.select destination error", zap.Error(err))
 	}
 
 	// Now pump the messages, one by one, a smarter implementation
@@ -59,13 +60,13 @@ func Forward(srcUrl, dstUrl string, srcQ, dstEx string, nums int, routeKeyConver
 	counts := 0
 	for {
 		if counts == nums {
-			logger.Infof("finished forward %d message", nums)
+			log.Info("finished forward message", zap.Int("counts", counts))
 			break
 		}
 
 		msg, ok := <-shovel
 		if !ok {
-			logger.Fatalf("source channel closed, see the reconnect example for handling this")
+			log.Info("source channel closed, see the reconnect example for handling this")
 		}
 		counts++
 
@@ -73,10 +74,10 @@ func Forward(srcUrl, dstUrl string, srcQ, dstEx string, nums int, routeKeyConver
 
 		if err != nil {
 			msg.Nack(false, false)
-			logger.Fatalf("basic.publish destination: %+v", msg)
+			log.Fatal("basic.publish destination error", zap.Error(err))
 		}
 
-		logger.Infof("forward %d %s:%d", counts, msg.RoutingKey, msg.DeliveryTag)
+		log.Info("forward", zap.Int("counts", counts), zap.String("route_key", msg.RoutingKey), zap.Uint64("delivery_tag", msg.DeliveryTag))
 
 		// only ack the source delivery when the destination acks the publishing
 		if confirmed := <-confirms; confirmed.Ack {

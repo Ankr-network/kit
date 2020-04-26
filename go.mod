@@ -1,18 +1,18 @@
 module github.com/Ankr-network/kit
 
-go 1.13
+go 1.14
 
 require (
-	github.com/caarlos0/env/v6 v6.1.0
+	github.com/caarlos0/env/v6 v6.2.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/go-redis/redis v6.15.6+incompatible
-	github.com/golang/protobuf v1.3.2
-	github.com/onsi/ginkgo v1.10.3 // indirect
-	github.com/onsi/gomega v1.7.1 // indirect
-	github.com/sirupsen/logrus v1.4.2
-	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
-	github.com/stretchr/testify v1.4.0
-	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297 // indirect
-	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6
-	google.golang.org/grpc v1.25.1
+	github.com/go-redis/redis v6.15.7+incompatible
+	github.com/golang/protobuf v1.4.0
+	github.com/onsi/ginkgo v1.12.0 // indirect
+	github.com/onsi/gomega v1.9.0 // indirect
+	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
+	github.com/stretchr/testify v1.5.1
+	go.uber.org/atomic v1.6.0
+	go.uber.org/zap v1.15.0
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+	google.golang.org/grpc v1.29.1
 )
