@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package rest;
+
+import "google/protobuf/any.proto";
+import "google/rpc/code.proto";
+
+message Error {
+  string error = 1;
+  // This corresponds to `google.rpc.Status.code`.
+  int32 code = 2;
+  // This is the enum version for `google.rpc.Status.code`.
+  google.rpc.Code status = 3;
+  // This corresponds to `google.rpc.Status.message`.
+  string message = 4;
+  // This corresponds to `google.rpc.Status.details`.
+  repeated google.protobuf.Any details = 5;
+}
