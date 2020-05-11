@@ -49,7 +49,7 @@ func CustomRESTErrorHandler(ctx context.Context, mux *runtime.ServeMux, m runtim
 
 	md, ok := runtime.ServerMetadataFromContext(ctx)
 	if !ok {
-		log.Error("to extract ServerMetadata from context error")
+		log.Error("extract ServerMetadata from context error")
 	} else {
 		handleForwardResponseServerMetadata(w, mux, md)
 		handleForwardResponseTrailerHeader(w, md)
