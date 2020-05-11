@@ -14,7 +14,8 @@ type Server struct {
 }
 
 func NewServerWithConfig() *Server {
-	restMux := runtime.NewServeMux(runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{OrigName: true, EmitDefaults: true}), runtime.WithProtoErrorHandler(CustomRESTErrorHandler))
+	cfg := MustLoadConfig()
+	restMux := runtime.NewServeMux(runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{OrigName: true, EmitDefaults: cfg.EmitDefaults}), runtime.WithProtoErrorHandler(CustomRESTErrorHandler))
 	handler, err := RegisterCORSHandler(restMux)
 	if err != nil {
 		log.Fatal("register cors handler error", zap.Error(err))
@@ -23,7 +24,7 @@ func NewServerWithConfig() *Server {
 	return &Server{
 		ServeMux: restMux,
 		Handler:  handler,
-		Address:  MustLoadConfig().ListenAddress,
+		Address:  cfg.ListenAddress,
 	}
 }
 
