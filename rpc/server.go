@@ -18,13 +18,13 @@ type Server struct {
 	Address string
 }
 
-func NewServerWithConfig(additionalExcludeMethods ...string) *Server {
+func NewBlackListServerWithConfig(bl auth.Blacklist, additionalExcludeMethods ...string) *Server {
 	excludeMethods := []string{
 		"/.+Internal.+/.+",
 		"/grpc.health.v1.Health/Check",
 	}
 	excludeMethods = append(excludeMethods, additionalExcludeMethods...)
-	verifier, err := auth.NewVerifier(auth.ExcludeMethods(excludeMethods...))
+	verifier, err := auth.NewVerifier(auth.ExcludeMethods(excludeMethods...), auth.TokenBlacklist(bl))
 	if err != nil {
 		log.Fatal("NewVerifier error", zap.Error(err))
 	}
@@ -40,6 +40,10 @@ func NewServerWithConfig(additionalExcludeMethods ...string) *Server {
 	healthPB.RegisterHealthServer(s, health.NewServer())
 	reflection.Register(s)
 	return &Server{Server: s, Address: MustLoadConfig().ListenAddress}
+}
+
+func NewServerWithConfig(additionalExcludeMethods ...string) *Server {
+	return NewBlackListServerWithConfig(nil, additionalExcludeMethods...)
 }
 
 func (s *Server) MustListenAndServe() {

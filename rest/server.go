@@ -8,23 +8,28 @@ import (
 )
 
 type Server struct {
-	ServeMux *runtime.ServeMux
-	Handler  http.Handler
-	Address  string
+	ServeMux     *runtime.ServeMux
+	Handler      http.Handler
+	HttpServeMux *http.ServeMux
+	Address      string
 }
 
 func NewServerWithConfig() *Server {
 	cfg := MustLoadConfig()
 	restMux := runtime.NewServeMux(runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{OrigName: true, EmitDefaults: cfg.EmitDefaults}), runtime.WithProtoErrorHandler(CustomRESTErrorHandler))
-	handler, err := RegisterCORSHandler(restMux)
+
+	httpServeMux := http.NewServeMux()
+	httpServeMux.Handle("/", restMux)
+
+	handler, err := RegisterCORSHandler(httpServeMux)
 	if err != nil {
 		log.Fatal("register cors handler error", zap.Error(err))
 	}
-
 	return &Server{
-		ServeMux: restMux,
-		Handler:  handler,
-		Address:  cfg.ListenAddress,
+		ServeMux:     restMux,
+		Handler:      handler,
+		HttpServeMux: httpServeMux,
+		Address:      cfg.ListenAddress,
 	}
 }
 
