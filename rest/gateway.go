@@ -3,6 +3,7 @@ package rest
 import (
 	"context"
 	"fmt"
+	"github.com/Ankr-network/kit/rest/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"go.uber.org/zap"
 	"google.golang.org/genproto/googleapis/rpc/code"
@@ -17,7 +18,7 @@ import (
 
 func CustomRESTErrorHandler(ctx context.Context, mux *runtime.ServeMux, m runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
 	// return Internal when Marshal failed
-	const fallback = `{"error": "InternalError" ,"code": 13, "status": "INTERNAL", "message": "failed to marshal error message"}`
+	const fallback = `{"error":"InternalError", "code":13, "status":"INTERNAL", "message":"failed to marshal error message"}`
 
 	s, ok := status.FromError(err)
 	if !ok {
@@ -64,9 +65,9 @@ func CustomRESTErrorHandler(ctx context.Context, mux *runtime.ServeMux, m runtim
 	handleForwardResponseTrailer(w, md)
 }
 
-func fromStatus(s *spb.Status) *Error {
+func fromStatus(s *spb.Status) *proto.Error {
 	errString := s.Message
-	out := new(Error)
+	out := new(proto.Error)
 	idx := strings.IndexRune(errString, ':')
 	if idx < 0 {
 		out.Error = strings.TrimSpace(errString)
