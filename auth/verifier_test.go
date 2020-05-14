@@ -9,7 +9,11 @@ import (
 )
 
 func TestMethodMatch(t *testing.T) {
-	rv, err := NewVerifier(ExcludeMethods(`/ankr\.uaa\.sms\.v.+/PublicSMS/.+`, `/.+/Internal.+/.+`))
+	rv, err := NewVerifier(ExcludeMethods(
+		`/ankr\.uaa\.sms\.v.+PublicSMS/.+`,
+		`/ankr\.uaa\.user\.v.+PublicUser/ConfirmEmail`,
+		`/.+Internal.+/.+`),
+	)
 	require.NoError(t, err)
 	r, ok := rv.(*verifier)
 	require.True(t, ok)
@@ -19,19 +23,23 @@ func TestMethodMatch(t *testing.T) {
 		res    bool
 	}{
 		{
-			"/ankr.uaa.sms.v1alpha/PublicSMS/Send",
+			"/ankr.uaa.sms.v1alpha.PublicSMS/Send",
 			true,
 		},
 		{
-			"/ankr.uaa.sms.v1alpha/PublicSMS/Check",
+			"/ankr.uaa.sms.v1alpha.PublicSMS/Check",
 			true,
 		},
 		{
-			"/ankr.uaa.totp.v1alpha/InternalTOTP/Status",
+			"/ankr.uaa.totp.v1alpha.InternalTOTP/Status",
 			true,
 		},
 		{
-			"/ankr.uaa.totp.v1alpha/InternalTOTP/Check",
+			"/ankr.uaa.totp.v1alpha.InternalTOTP/Check",
+			true,
+		},
+		{
+			"/ankr.uaa.user.v1alpha.PublicUser/ConfirmEmail",
 			true,
 		},
 	}
