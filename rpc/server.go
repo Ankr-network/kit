@@ -20,8 +20,8 @@ type Server struct {
 
 func NewBlackListServerWithConfig(bl auth.Blacklist, additionalExcludeMethods ...string) *Server {
 	excludeMethods := []string{
-		"/.+Internal.+/.+",
-		"/grpc.health.v1.Health/Check",
+		`/.+Internal.+/.+`,
+		`/grpc\.health\.v1\.Health/Check`,
 	}
 	excludeMethods = append(excludeMethods, additionalExcludeMethods...)
 	verifier, err := auth.NewVerifier(auth.ExcludeMethods(excludeMethods...), auth.TokenBlacklist(bl))
