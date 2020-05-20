@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	log = mlog.Logger("pkg.rdb")
+	log = mlog.Logger("rdb")
 )
 
 func LogSQL(sql string, args ...interface{}) {
