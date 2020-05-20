@@ -64,10 +64,10 @@ func multiPub() {
 	tick := time.NewTicker(time.Second)
 	i := 0
 	for range tick.C {
-		msg := proto.Hello{Name: fmt.Sprintf("No.%d", i)}
+		msg := &proto.Hello{Name: fmt.Sprintf("No.%d", i)}
 		if err := publisher.PublishMessage(&broker.Message{
 			Topic: topic,
-			Value: &msg,
+			Value: msg,
 		}); err != nil {
 			log.Infof("[multiPub] failed: %v", err)
 		} else {
@@ -81,9 +81,9 @@ func pub() {
 	tick := time.NewTicker(time.Second)
 	i := 0
 	for range tick.C {
-		msg := proto.Hello{Name: fmt.Sprintf("No.%d", i)}
-		if err := helloPublisher.Publish(&msg); err != nil {
-			log.Infof("[pub] failed: %v", err)
+		msg := &proto.Hello{Name: fmt.Sprintf("No.%d", i)}
+		if err := helloPublisher.Publish(msg); err != nil {
+			log.Error("[pub] failed: %v", err)
 		} else {
 			log.Infof("[pub] pubbed message: %+v", msg)
 		}
