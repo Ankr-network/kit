@@ -62,6 +62,14 @@ type verifier struct {
 }
 
 func (p *verifier) Verify(tokenString string) (*jwt.Token, error) {
+	if p.blacklist != nil {
+		if err := p.blacklist.CheckAccess(tokenString); err != nil {
+			if errors.Is(err, ErrExpiredAccess) {
+				return nil, ErrInvalidToken
+			}
+			return nil, err
+		}
+	}
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return p.key, nil
 	})
@@ -96,15 +104,6 @@ func (p *verifier) VerifyContext(ctx context.Context) (context.Context, error) {
 	tokenString, err := ExtractToken(ctx)
 	if err != nil {
 		return nil, err
-	}
-
-	if p.blacklist != nil {
-		if err := p.blacklist.CheckAccess(tokenString); err != nil {
-			if errors.Is(err, ErrExpiredAccess) {
-				return nil, ErrInvalidToken
-			}
-			return nil, err
-		}
 	}
 
 	token, err := p.Verify(tokenString)
