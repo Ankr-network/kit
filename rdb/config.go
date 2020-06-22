@@ -1,7 +1,7 @@
 package rdb
 
 import (
-	"kit.self/util"
+	"com.ankr.kit/util"
 	"time"
 )
 

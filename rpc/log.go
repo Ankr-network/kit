@@ -1,5 +1,5 @@
 package rpc
 
-import "kit.self/mlog"
+import "com.ankr.kit/mlog"
 
 var log = mlog.Logger("rpc")

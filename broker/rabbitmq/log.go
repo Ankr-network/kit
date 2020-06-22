@@ -1,7 +1,7 @@
 package rabbitmq
 
 import (
-	"kit.self/mlog"
+	"com.ankr.kit/mlog"
 )
 
 var log = mlog.Logger("broker")

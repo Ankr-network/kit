@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"com.ankr.kit/rest/proto"
 	"context"
 	"fmt"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -10,7 +11,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"io"
-	"kit.self/rest/proto"
 	"net/http"
 	"net/textproto"
 	"strings"

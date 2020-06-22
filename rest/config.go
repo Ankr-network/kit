@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"kit.self/util"
+	"com.ankr.kit/util"
 )
 
 type Config struct {

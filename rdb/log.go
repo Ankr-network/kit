@@ -1,7 +1,7 @@
 package rdb
 
 import (
-	"kit.self/mlog"
+	"com.ankr.kit/mlog"
 	"strings"
 )
 

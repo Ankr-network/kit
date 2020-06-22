@@ -1,9 +1,9 @@
 package rest
 
 import (
+	"com.ankr.kit/app"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"go.uber.org/zap"
-	"kit.self/app"
 	"net/http"
 )
 

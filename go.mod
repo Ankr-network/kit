@@ -1,8 +1,6 @@
-module github.com/Ankr-network/kit
+module com.ankr.kit
 
 go 1.14
-
-replace kit.self v0.0.0 => ./
 
 require (
 	github.com/caarlos0/env/v6 v6.2.2
@@ -14,6 +12,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.14.6
 	github.com/jmoiron/sqlx v1.2.0
+	github.com/onsi/ginkgo v1.13.0 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/shopspring/decimal v1.2.0
 	github.com/streadway/amqp v1.0.0
@@ -24,5 +23,4 @@ require (
 	google.golang.org/genproto v0.0.0-20200620020550-bd6e04640131
 	google.golang.org/grpc v1.29.1
 	google.golang.org/protobuf v1.24.0
-	kit.self v0.0.0
 )

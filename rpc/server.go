@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"com.ankr.kit/app"
+	"com.ankr.kit/util"
 	grpcMiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpcValidator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"go.uber.org/zap"
@@ -8,8 +10,6 @@ import (
 	"google.golang.org/grpc/health"
 	healthPB "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
-	"kit.self/app"
-	"kit.self/util"
 )
 
 type Server struct {

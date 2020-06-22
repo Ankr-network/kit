@@ -1,8 +1,8 @@
 package rest
 
 import (
+	"com.ankr.kit/rest/proto"
 	"encoding/json"
-	"kit.self/rest/proto"
 	"net/http"
 	"strings"
 )
