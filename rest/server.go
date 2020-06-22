@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"com.ankr.kit/app"
+	"github.com/Ankr-network/kit/app"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"go.uber.org/zap"
 	"net/http"

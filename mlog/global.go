@@ -1,7 +1,7 @@
 package mlog
 
 import (
-	"com.ankr.kit/app"
+	"github.com/Ankr-network/kit/app"
 	"io"
 	"log"
 	"sync"

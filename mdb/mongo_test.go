@@ -3,8 +3,8 @@
 package mdb
 
 import (
-	"com.ankr.kit/mdb/test"
 	"context"
+	"github.com/Ankr-network/kit/mdb/test"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"

@@ -2,8 +2,8 @@
 package rabbitmq
 
 import (
-	"com.ankr.kit/broker"
 	"fmt"
+	"github.com/Ankr-network/kit/broker"
 	"github.com/streadway/amqp"
 	"go.uber.org/zap"
 	"regexp"

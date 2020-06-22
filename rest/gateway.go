@@ -1,9 +1,9 @@
 package rest
 
 import (
-	"com.ankr.kit/rest/proto"
 	"context"
 	"fmt"
+	"github.com/Ankr-network/kit/rest/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"go.uber.org/zap"
 	"google.golang.org/genproto/googleapis/rpc/code"

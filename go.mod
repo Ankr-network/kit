@@ -1,4 +1,4 @@
-module com.ankr.kit
+module github.com/Ankr-network/kit
 
 go 1.14
 

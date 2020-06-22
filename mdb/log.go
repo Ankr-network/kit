@@ -1,7 +1,7 @@
 package mdb
 
 import (
-	"com.ankr.kit/mlog"
+	"github.com/Ankr-network/kit/mlog"
 )
 
 var (

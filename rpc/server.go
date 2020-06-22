@@ -1,8 +1,8 @@
 package rpc
 
 import (
-	"com.ankr.kit/app"
-	"com.ankr.kit/util"
+	"github.com/Ankr-network/kit/app"
+	"github.com/Ankr-network/kit/util"
 	grpcMiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpcValidator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"go.uber.org/zap"

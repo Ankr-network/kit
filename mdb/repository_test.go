@@ -3,7 +3,7 @@
 package mdb
 
 import (
-	"com.ankr.kit/mdb/test"
+	"github.com/Ankr-network/kit/mdb/test"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"testing"

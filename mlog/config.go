@@ -1,7 +1,7 @@
 package mlog
 
 import (
-	"com.ankr.kit/util"
+	"github.com/Ankr-network/kit/util"
 )
 
 type Config struct {

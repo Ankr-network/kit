@@ -4,7 +4,7 @@ import (
 	"errors"
 	"go.uber.org/zap"
 
-	"com.ankr.kit/broker"
+	"github.com/Ankr-network/kit/broker"
 	"github.com/golang/protobuf/proto"
 	"github.com/streadway/amqp"
 )
