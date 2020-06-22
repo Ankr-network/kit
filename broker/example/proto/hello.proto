@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package proto;
-
-option go_package = "github.com/Ankr-network/broker/example/proto";
-
-message Hello {
-    string name = 1;
-}

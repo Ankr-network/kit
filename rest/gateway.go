@@ -3,7 +3,6 @@ package rest
 import (
 	"context"
 	"fmt"
-	"github.com/Ankr-network/kit/rest/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"go.uber.org/zap"
 	"google.golang.org/genproto/googleapis/rpc/code"
@@ -11,6 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"io"
+	"kit/rest/proto"
 	"net/http"
 	"net/textproto"
 	"strings"

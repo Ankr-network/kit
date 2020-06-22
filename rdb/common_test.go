@@ -1,3 +1,5 @@
+//+build integration
+
 package rdb
 
 import "testing"
@@ -7,7 +9,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	testRepo = NewMySQLRepositoryWithConfig()
+	testRepo = NewMySQLRepository(MustLoadConfig())
 	defer testRepo.Close()
 	m.Run()
 }

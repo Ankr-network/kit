@@ -11,7 +11,6 @@ import (
 )
 
 func TestPublishConfirmAndReturn(t *testing.T) {
-	cfg, err := LoadConfig()
 	require.NoError(t, err)
 	conn, err := amqp.Dial(cfg.URL)
 	require.NoError(t, err)

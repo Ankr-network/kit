@@ -9,10 +9,6 @@ type Broker interface {
 	MultiTopicPublisher(opts ...Option) (MultiTopicPublisher, error)
 	RegisterSubscribeHandler(name, topic string, handler interface{}, opts ...Option) error
 	RegisterErrSubscribeHandler(name, topic string, handler interface{}) error
-	// Deprecated. use RegisterSubscribeHandler instead
-	Subscribe(name, topic string, reliable, requeue bool, handler interface{}) error
-	// Deprecated. use TopicPublisher instead
-	Publisher(topic string, reliable bool) (Publisher, error)
 }
 
 type Publisher interface {

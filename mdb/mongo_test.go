@@ -4,7 +4,6 @@ package mdb
 
 import (
 	"context"
-	"github.com/Ankr-network/kit/mdb/test"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -12,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"kit/mdb/test"
 	"testing"
 )
 

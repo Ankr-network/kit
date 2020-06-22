@@ -4,9 +4,9 @@ import (
 	"errors"
 	"go.uber.org/zap"
 
-	"github.com/Ankr-network/kit/broker"
 	"github.com/golang/protobuf/proto"
 	"github.com/streadway/amqp"
+	"kit/broker"
 )
 
 var (

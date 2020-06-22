@@ -1,9 +1,6 @@
 package rpc
 
 import (
-	"github.com/Ankr-network/kit/app"
-	"github.com/Ankr-network/kit/auth"
-	"github.com/Ankr-network/kit/util"
 	grpcMiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpcValidator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"go.uber.org/zap"
@@ -11,6 +8,8 @@ import (
 	"google.golang.org/grpc/health"
 	healthPB "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
+	"kit/app"
+	"kit/util"
 )
 
 type Server struct {
@@ -18,32 +17,18 @@ type Server struct {
 	Address string
 }
 
-func NewBlackListServerWithConfig(bl auth.Blacklist, additionalExcludeMethods ...string) *Server {
-	excludeMethods := []string{
-		`/.+Internal.+/.+`,
-		`/grpc\.health\.v1\.Health/Check`,
-	}
-	excludeMethods = append(excludeMethods, additionalExcludeMethods...)
-	verifier, err := auth.NewVerifier(auth.ExcludeMethods(excludeMethods...), auth.TokenBlacklist(bl))
-	if err != nil {
-		log.Fatal("NewVerifier error", zap.Error(err))
-	}
-
+func NewServer(cfg *Config, interceptors ...grpc.UnaryServerInterceptor) *Server {
+	interceptors = append(interceptors, grpcValidator.UnaryServerInterceptor())
 	s := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			grpcMiddleware.ChainUnaryServer(
-				verifier.GRPCUnaryInterceptor(),
-				grpcValidator.UnaryServerInterceptor(),
+				interceptors...,
 			),
 		),
 	)
 	healthPB.RegisterHealthServer(s, health.NewServer())
 	reflection.Register(s)
-	return &Server{Server: s, Address: MustLoadConfig().ListenAddress}
-}
-
-func NewServerWithConfig(additionalExcludeMethods ...string) *Server {
-	return NewBlackListServerWithConfig(nil, additionalExcludeMethods...)
+	return &Server{Server: s, Address: cfg.ListenAddress}
 }
 
 func (s *Server) MustListenAndServe() {

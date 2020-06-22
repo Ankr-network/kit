@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis"
-	"go.uber.org/zap"
 	"time"
 )
 
@@ -23,37 +22,21 @@ type RedisBlacklistOptions struct {
 
 type RedisBlacklistOption func(opts *RedisBlacklistOptions)
 
-type redisBlacklist struct {
-	prefix string
-	cli    redis.Cmdable
-}
-
 func WithPrefix(prefix string) RedisBlacklistOption {
 	return func(opts *RedisBlacklistOptions) {
 		opts.Prefix = prefix
 	}
 }
 
-func NewRedisCliFromConfig() *redis.Client {
-	cfg, err := LoadConfig()
-	if err != nil {
-		log.Fatal("LoadConfig error", zap.Error(err))
-	}
-	return redis.NewClient(&redis.Options{
-		Addr:        cfg.BlackList.Addr,
-		Password:    cfg.BlackList.Password,
-		DB:          cfg.BlackList.DB,
-		IdleTimeout: cfg.BlackList.IdleTimeout,
-	})
+type redisBlacklist struct {
+	prefix string
+	cli    redis.Cmdable
 }
 
 func NewRedisBlacklist(cmdable redis.Cmdable, opts ...RedisBlacklistOption) Blacklist {
-	options := new(RedisBlacklistOptions)
-	cfg, err := LoadConfig()
-	if err != nil {
-		log.Fatal("config.LoadConfig error", zap.Error(err))
+	options := &RedisBlacklistOptions{
+		Prefix: "token:blacklist:",
 	}
-	options.Prefix = cfg.BlackList.Prefix
 
 	for _, opt := range opts {
 		opt(options)

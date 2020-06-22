@@ -11,7 +11,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	testCli = NewClientWithConfig()
+	testCli = NewClient(MustLoadConfig().URL)
 	defer testCli.Disconnect(context.Background())
 	m.Run()
 }

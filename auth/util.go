@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-redis/redis"
 	"google.golang.org/grpc/metadata"
 	"strings"
 )
@@ -11,6 +12,15 @@ import (
 var (
 	ErrInvalidContext = errors.New("context without authentication")
 )
+
+func NewRedisCli(cfg *BlackListConfig) *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:        cfg.Addr,
+		Password:    cfg.Password,
+		DB:          cfg.DB,
+		IdleTimeout: cfg.IdleTimeout,
+	})
+}
 
 func GetUID(ctx context.Context) (string, error) {
 	claim, err := GetClaim(ctx)

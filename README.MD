@@ -1,7 +1,13 @@
 # kit
 ## Introduction
-provide common kits for building ankr micro services
+provide common kits for building micro services
 ## kits
-- broker: MQ transports
+- app: application util: such as sync pub/sub
 - auth: jwt verification and blacklist support
-- log: logrus with grpc setting endpoint
+- broker: MQ
+- mdb: mongo db repository
+- mlog: module log using zap
+- rdb: mysql db repository
+- rest: expose grpc with REST api
+- rpc: grpc util
+- util: global util

@@ -19,10 +19,6 @@ func NewRepository(client *mongo.Client, dbName, collectionName string) *Reposit
 	}
 }
 
-func NewClientWithConfig() *mongo.Client {
-	return NewClient(MustLoadConfig().URL)
-}
-
 func NewClient(url string) *mongo.Client {
 	rb := bson.NewRegistryBuilder()
 	codec := &DecimalCodec{}

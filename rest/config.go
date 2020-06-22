@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"github.com/Ankr-network/kit/util"
+	"kit/util"
 )
 
 type Config struct {

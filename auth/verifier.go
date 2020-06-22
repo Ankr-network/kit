@@ -29,18 +29,11 @@ type Verifier interface {
 }
 
 type VerifierOptions struct {
-	RSAPublicKeyPath string
-	ExcludeMethods   []string
-	TokenBlacklist   Blacklist
+	ExcludeMethods []string
+	TokenBlacklist Blacklist
 }
 
 type VerifierOption func(opts *VerifierOptions)
-
-func RSAPublicKeyPath(path string) VerifierOption {
-	return func(opts *VerifierOptions) {
-		opts.RSAPublicKeyPath = path
-	}
-}
 
 func ExcludeMethods(method ...string) VerifierOption {
 	return func(opts *VerifierOptions) {
@@ -52,6 +45,41 @@ func TokenBlacklist(bl Blacklist) VerifierOption {
 	return func(opts *VerifierOptions) {
 		opts.TokenBlacklist = bl
 	}
+}
+
+func NewVerifier(publicKeyPath string, opts ...VerifierOption) (Verifier, error) {
+	rawKey, err := ioutil.ReadFile(publicKeyPath)
+	if err != nil {
+		return nil, err
+	}
+
+	key, err := jwt.ParseRSAPublicKeyFromPEM(rawKey)
+
+	// default
+	options := &VerifierOptions{
+		ExcludeMethods: []string{`/.+Internal.+/.+`, `/grpc\.health\.v1\.Health/Check`},
+	}
+
+	for _, o := range opts {
+		o(options)
+	}
+
+	excludePatterns := make([]*regexp.Regexp, len(options.ExcludeMethods))
+	for i, m := range options.ExcludeMethods {
+		r, err := regexp.Compile(m)
+		if err != nil {
+			log.Error("invalid method pattern error", zap.Error(err))
+			return nil, err
+		}
+		excludePatterns[i] = r
+	}
+
+	return &verifier{
+		rawKey:          rawKey,
+		key:             key,
+		excludePatterns: excludePatterns,
+		blacklist:       options.TokenBlacklist,
+	}, nil
 }
 
 type verifier struct {
@@ -127,45 +155,4 @@ func (p *verifier) matchMethod(method string) bool {
 		}
 	}
 	return false
-}
-
-func NewVerifier(opts ...VerifierOption) (Verifier, error) {
-	// default
-	options := &VerifierOptions{
-		ExcludeMethods: make([]string, 0),
-	}
-	cfg, err := LoadConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	options.RSAPublicKeyPath = cfg.Verifier.RSAPublicKeyPath
-
-	for _, o := range opts {
-		o(options)
-	}
-
-	rawKey, err := ioutil.ReadFile(options.RSAPublicKeyPath)
-	if err != nil {
-		return nil, err
-	}
-
-	key, err := jwt.ParseRSAPublicKeyFromPEM(rawKey)
-
-	excludePatterns := make([]*regexp.Regexp, len(options.ExcludeMethods))
-	for i, m := range options.ExcludeMethods {
-		r, err := regexp.Compile(m)
-		if err != nil {
-			log.Error("invalid method pattern error", zap.Error(err))
-			return nil, err
-		}
-		excludePatterns[i] = r
-	}
-
-	return &verifier{
-		rawKey:          rawKey,
-		key:             key,
-		excludePatterns: excludePatterns,
-		blacklist:       options.TokenBlacklist,
-	}, nil
 }

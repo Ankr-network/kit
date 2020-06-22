@@ -1,9 +1,9 @@
 package rest
 
 import (
-	"github.com/Ankr-network/kit/app"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"go.uber.org/zap"
+	"kit/app"
 	"net/http"
 )
 
@@ -14,14 +14,13 @@ type Server struct {
 	Address      string
 }
 
-func NewServerWithConfig() *Server {
-	cfg := MustLoadConfig()
+func NewServer(cfg *Config) *Server {
 	restMux := runtime.NewServeMux(runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{OrigName: true, EmitDefaults: cfg.EmitDefaults}), runtime.WithProtoErrorHandler(CustomRESTErrorHandler))
 
 	httpServeMux := http.NewServeMux()
 	httpServeMux.Handle("/", restMux)
 
-	handler, err := RegisterCORSHandler(httpServeMux)
+	handler, err := RegisterCORSHandler(cfg.CORSMaxAge, httpServeMux)
 	if err != nil {
 		log.Fatal("register cors handler error", zap.Error(err))
 	}

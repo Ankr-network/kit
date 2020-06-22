@@ -85,8 +85,7 @@ func NewLocal(opts ...zap.Option) *MLog {
 }
 
 // New return a logger with env configuration
-func New() *MLog {
-	cfg := MustLoadConfig()
+func New(cfg *Config) *MLog {
 	switch cfg.Mode {
 	case ModeLocal:
 		return NewLocal()

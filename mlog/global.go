@@ -1,14 +1,14 @@
 package mlog
 
 import (
-	"github.com/Ankr-network/kit/app"
 	"io"
+	"kit/app"
 	"log"
 	"sync"
 )
 
 var (
-	std       = New()
+	std       = New(MustLoadConfig())
 	loggerMap sync.Map
 )
 

@@ -3,9 +3,9 @@
 package mdb
 
 import (
-	"github.com/Ankr-network/kit/mdb/test"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
+	"kit/mdb/test"
 	"testing"
 )
 

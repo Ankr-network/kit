@@ -1,17 +1,12 @@
 package auth
 
 import (
-	"github.com/caarlos0/env/v6"
+	"kit/util"
 	"time"
 )
 
-type Config struct {
-	Verifier  VerifierConfig
-	BlackList BlackListConfig
-}
-
 type VerifierConfig struct {
-	RSAPublicKeyPath string `env:"JWT_RSA_PUBLIC_KEY_PATH" envDefault:"/etc/ankr/secret/jwt.key.pub"`
+	RSAPublicKeyPath string `env:"JWT_RSA_PUBLIC_KEY_PATH,required"`
 }
 
 type BlackListConfig struct {
@@ -22,10 +17,14 @@ type BlackListConfig struct {
 	DB          int           `env:"REDIS_BLACKLIST_DB" envDefault:"0"`
 }
 
-func LoadConfig() (*Config, error) {
-	out := new(Config)
-	if err := env.Parse(out); err != nil {
-		return nil, err
-	}
-	return out, nil
+func MustLoadBlackListConfig() *BlackListConfig {
+	out := new(BlackListConfig)
+	util.MustLoadConfig(out)
+	return out
+}
+
+func MustLoadVerifierConfig() *VerifierConfig {
+	out := new(VerifierConfig)
+	util.MustLoadConfig(out)
+	return out
 }

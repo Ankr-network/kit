@@ -25,7 +25,7 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	logger := New()
+	logger := New(MustLoadConfig())
 	defer logger.Sync()
 
 	logger.Debug("debug")
@@ -34,7 +34,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestLogger_Clone(t *testing.T) {
-	a := New()
+	a := New(MustLoadConfig())
 	b := a.Clone("")
 
 	assert.NotEqual(t, a.Logger, b.Logger)
@@ -46,7 +46,7 @@ func TestLogger_Clone(t *testing.T) {
 }
 
 func ExampleMLog_SetLevel() {
-	logger := New()
+	logger := New(MustLoadConfig())
 	defer logger.Sync()
 
 	logger.SetLevel(zapcore.InfoLevel)

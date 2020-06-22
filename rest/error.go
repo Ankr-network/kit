@@ -2,7 +2,7 @@ package rest
 
 import (
 	"encoding/json"
-	"github.com/Ankr-network/kit/rest/proto"
+	"kit/rest/proto"
 	"net/http"
 	"strings"
 )
