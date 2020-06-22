@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"io"
-	"kit/rest/proto"
+	"kit.self/rest/proto"
 	"net/http"
 	"net/textproto"
 	"strings"

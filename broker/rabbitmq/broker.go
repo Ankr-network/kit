@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/streadway/amqp"
 	"go.uber.org/zap"
-	"kit/broker"
+	"kit.self/broker"
 	"regexp"
 	"time"
 )

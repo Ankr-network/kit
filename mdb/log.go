@@ -1,7 +1,7 @@
 package mdb
 
 import (
-	"kit/mlog"
+	"kit.self/mlog"
 )
 
 var (

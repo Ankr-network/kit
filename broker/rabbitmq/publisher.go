@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/streadway/amqp"
-	"kit/broker"
+	"kit.self/broker"
 )
 
 var (

@@ -1,5 +1,5 @@
 package rest
 
-import "kit/mlog"
+import "kit.self/mlog"
 
 var log = mlog.Logger("rest")

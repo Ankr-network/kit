@@ -2,7 +2,7 @@ package rest
 
 import (
 	"encoding/json"
-	"kit/rest/proto"
+	"kit.self/rest/proto"
 	"net/http"
 	"strings"
 )

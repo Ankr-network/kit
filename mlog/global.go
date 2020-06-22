@@ -2,7 +2,7 @@ package mlog
 
 import (
 	"io"
-	"kit/app"
+	"kit.self/app"
 	"log"
 	"sync"
 )

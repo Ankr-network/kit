@@ -5,7 +5,7 @@ package mdb
 import (
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
-	"kit/mdb/test"
+	"kit.self/mdb/test"
 	"testing"
 )
 

@@ -1,7 +1,7 @@
 package rabbitmq
 
 import (
-	"kit/util"
+	"kit.self/util"
 	"time"
 )
 

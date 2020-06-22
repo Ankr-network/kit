@@ -1,6 +1,6 @@
 package mdb
 
-import "kit/util"
+import "kit.self/util"
 
 type Config struct {
 	URL string `env:"MONGO_URL" envDefault:"mongodb://localhost:27017"`

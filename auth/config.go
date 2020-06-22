@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"kit/util"
+	"kit.self/util"
 	"time"
 )
 

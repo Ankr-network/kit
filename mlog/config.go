@@ -1,7 +1,7 @@
 package mlog
 
 import (
-	"kit/util"
+	"kit.self/util"
 )
 
 type Config struct {

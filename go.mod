@@ -2,7 +2,7 @@ module github.com/Ankr-network/kit
 
 go 1.14
 
-replace kit v0.0.0 => ./
+replace kit.self v0.0.0 => ./
 
 require (
 	github.com/caarlos0/env/v6 v6.2.2
@@ -24,5 +24,5 @@ require (
 	google.golang.org/genproto v0.0.0-20200620020550-bd6e04640131
 	google.golang.org/grpc v1.29.1
 	google.golang.org/protobuf v1.24.0
-	kit v0.0.0
+	kit.self v0.0.0
 )

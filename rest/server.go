@@ -3,7 +3,7 @@ package rest
 import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"go.uber.org/zap"
-	"kit/app"
+	"kit.self/app"
 	"net/http"
 )
 
