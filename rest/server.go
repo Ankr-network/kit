@@ -14,6 +14,10 @@ type Server struct {
 	Address      string
 }
 
+func NewServerWithConfig() *Server {
+	return NewServer(MustLoadConfig())
+}
+
 func NewServer(cfg *Config) *Server {
 	restMux := runtime.NewServeMux(runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{OrigName: true, EmitDefaults: cfg.EmitDefaults}), runtime.WithProtoErrorHandler(CustomRESTErrorHandler))
 

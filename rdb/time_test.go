@@ -1,9 +1,10 @@
-// +build integration
+//+build integration
 
 package rdb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,4 +49,19 @@ func TestTime(t *testing.T) {
 	err = stm.Get(no2)
 	assert.NoError(t, err)
 	assert.True(t, now.ToTime().Equal(no2.Time.ToTime()))
+}
+
+func TestTimeScan(t *testing.T) {
+	ti := Time{}
+	err := ti.Scan(int64(1601194519087052572))
+	assert.NoError(t, err)
+	sti1 := ti.String()
+	err = ti.Scan([]uint8("1601194519087052572"))
+	assert.NoError(t, err)
+	sti2 := ti.String()
+	assert.Equal(t, sti1, sti2)
+	assert.Equal(t, sti1, "2020-09-27 16:15:19.087052572 +0800 CST")
+
+	err = ti.Scan("aaaaaaa")
+	assert.True(t, errors.Is(err, ErrUnknowDBValueForTime))
 }

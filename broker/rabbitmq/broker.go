@@ -48,6 +48,16 @@ type rabbitBroker struct {
 	nackDelay time.Duration
 }
 
+func NewRabbitMQBrokerWithConfig() broker.Broker {
+	return NewRabbitMQBroker(
+		MustLoadConfig().URL,
+		MustLoadConfig().Exchange,
+		WithALT(MustLoadConfig().ALT),
+		WithDLX(MustLoadConfig().DLX),
+		WithNackDelay(MustLoadConfig().NackDelay),
+	)
+}
+
 func NewRabbitMQBroker(url, exchange string, opts ...Option) broker.Broker {
 	options := &Options{
 		NackDelay: 5 * time.Second,

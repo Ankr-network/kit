@@ -3,6 +3,7 @@ package rdb
 import (
 	"database/sql/driver"
 	"errors"
+	"strconv"
 	"time"
 )
 
@@ -12,6 +13,7 @@ const (
 
 var (
 	ErrInvalidDBValueForTime = errors.New("invalid db value for time")
+	ErrUnknowDBValueForTime  = errors.New("unknow db value for time")
 )
 
 type Time struct {
@@ -39,9 +41,30 @@ func (t *Time) Scan(value interface{}) error {
 	if value == nil {
 		return nil
 	}
-	int64V, int64OK := value.(int64)
-	if !int64OK {
-		return ErrInvalidDBValueForTime
+	var (
+		int64V  int64
+		int64OK bool
+		err     error
+	)
+
+	switch value.(type) {
+	case int64:
+		int64V, int64OK = value.(int64)
+		if !int64OK {
+			return ErrInvalidDBValueForTime
+		}
+	case []uint8:
+		s, ok := value.([]uint8)
+		if ok {
+			int64V, err = strconv.ParseInt(string(s), 10, 64)
+			if err != nil {
+				return ErrInvalidDBValueForTime
+			}
+		} else {
+			return ErrInvalidDBValueForTime
+		}
+	default:
+		return ErrUnknowDBValueForTime
 	}
 
 	if int64V == zeroUnixNanos {
