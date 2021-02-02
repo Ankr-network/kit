@@ -14,7 +14,7 @@ type Config struct {
 	Disabled         bool     `env:"JAEGER_DISABLED" envDefault:"false"`
 	Tags             []string `env:"JAEGER_TAGS" envSeparator:","` // key1=value1,key2=value2
 	SamplerType      string   `env:"JAEGER_SAMPLER_TYPE" envDefault:"const"`
-	SamplerParam     float64  `env:"JAEGER_SAMPLER_PARAM" encDefault:"1"`
+	SamplerParam     float64  `env:"JAEGER_SAMPLER_PARAM" envDefault:"1"`
 	ReporterLogSpans bool     `env:"JAEGER_REPORTER_LOG_SPANS" envDefault:"true"`
 	LocalAgentHost   string   `env:"JAEGER_AGENT_HOST" envDefault:"127.0.0.1"`
 	LocalAgentPort   string   `env:"JAEGER_AGENT_PORT" envDefault:"6831"`
