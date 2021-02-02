@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"fmt"
 	"github.com/Ankr-network/kit/util"
 	"github.com/opentracing/opentracing-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
@@ -8,22 +9,15 @@ import (
 )
 
 type Config struct {
-	ServiceName                         string        `env:"JAEGER_SERVICE_NAME,required"`
-	RPCMetrics                          bool          `env:"JAEGER_RPC_METRICS"`
-	Disabled                            bool          `env:"JAEGER_DISABLED" envDefault:"false"`
-	Tags                                []string      `env:"JAEGER_TAGS" envSeparator:","` // key1=value1,key2=value2
-	SamplerType                         string        `env:"JAEGER_SAMPLER_TYPE" envDefault:"const"`
-	SamplerParam                        float64       `env:"JAEGER_SAMPLER_PARAM" encDefault:"1"`
-	ReporterLogSpans                    bool          `env:"JAEGER_REPORTER_LOG_SPANS" envDefault:"true"`
-	LocalAgentHostPort                  string        `env:"JAEGER_AGENT" envDefault:"127.0.0.1"`
-	//SamplerManagerHostPort              string        `env:"JAEGER_SAMPLER_MANAGER_HOST_PORT"`
-	//SamplingEndpoint                    string        `env:"JAEGER_ENDPOINT"`
-	//SamplerMaxOperations                int           `env:"JAEGER_SAMPLER_MAX_OPERATIONS"`
-	//SamplerRefreshInterval              time.Duration `env:"JAEGER_SAMPLER_REFRESH_INTERVAL"`
-	//ReporterMaxQueueSize                int           `env:"JAEGER_REPORTER_MAX_QUEUE_SIZE"`
-	//ReporterFlushInterval               time.Duration `env:"JAEGER_REPORTER_FLUSH_INTERVAL"`
-	//ReporterAttemptReconnectingDisabled bool          `env:"JAEGER_REPORTER_ATTEMPT_RECONNECTING_DISABLED"`
-	//ReporterAttemptReconnectInterval    time.Duration `env:"JAEGER_REPORTER_ATTEMPT_RECONNECT_INTERVAL"`
+	ServiceName      string   `env:"JAEGER_SERVICE_NAME,required"`
+	RPCMetrics       bool     `env:"JAEGER_RPC_METRICS"`
+	Disabled         bool     `env:"JAEGER_DISABLED" envDefault:"false"`
+	Tags             []string `env:"JAEGER_TAGS" envSeparator:","` // key1=value1,key2=value2
+	SamplerType      string   `env:"JAEGER_SAMPLER_TYPE" envDefault:"const"`
+	SamplerParam     float64  `env:"JAEGER_SAMPLER_PARAM" encDefault:"1"`
+	ReporterLogSpans bool     `env:"JAEGER_REPORTER_LOG_SPANS" envDefault:"true"`
+	LocalAgentHost   string   `env:"JAEGER_AGENT_HOST" envDefault:"127.0.0.1"`
+	LocalAgentPort   string   `env:"JAEGER_AGENT_PORT" envDefault:"6831"`
 }
 
 func MustLoadConfig() *Config {
@@ -38,16 +32,12 @@ func (c *Config) ToTraceConfiguration() *jaegercfg.Configuration {
 		Disabled:    c.Disabled,
 		RPCMetrics:  c.RPCMetrics,
 		Sampler: &jaegercfg.SamplerConfig{
-			Type:                    c.SamplerType,
-			Param:                   c.SamplerParam,
-			//SamplingServerURL:       c.SamplingEndpoint,
-			//SamplingRefreshInterval: c.ReporterFlushInterval,
-			//MaxOperations:           c.SamplerMaxOperations,
+			Type:  c.SamplerType,
+			Param: c.SamplerParam,
 		},
 		Reporter: &jaegercfg.ReporterConfig{
-			//QueueSize:                  c.ReporterMaxQueueSize,
-			//BufferFlushInterval:        c.ReporterFlushInterval,
-			LogSpans:                   c.ReporterLogSpans,
+			LogSpans:           c.ReporterLogSpans,
+			LocalAgentHostPort: fmt.Sprintf("%s:%s", c.LocalAgentHost, c.LocalAgentPort),
 		},
 	}
 
