@@ -11,3 +11,4 @@ provide common kits for building micro services
 - rest: expose grpc with REST api
 - rpc: grpc util
 - util: global util
+- trace: opentracing

@@ -17,6 +17,10 @@ type Server struct {
 	Address string
 }
 
+func NewServerWithConfig(interceptors ...grpc.UnaryServerInterceptor) *Server {
+	return NewServer(MustLoadConfig(), interceptors...)
+}
+
 func NewServer(cfg *Config, interceptors ...grpc.UnaryServerInterceptor) *Server {
 	interceptors = append(interceptors, grpcValidator.UnaryServerInterceptor())
 	s := grpc.NewServer(

@@ -46,6 +46,10 @@ type MySQLRepository struct {
 	*sqlx.DB
 }
 
+func NewMySQLRepositoryWithConfig() *MySQLRepository {
+	return NewMySQLRepository(MustLoadConfig())
+}
+
 func NewMySQLRepository(cfg *Config) *MySQLRepository {
 	db := sqlx.MustConnect("mysql", cfg.DSN)
 	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)

@@ -78,7 +78,7 @@ func TestMySQLRepository_UpdateOne(t *testing.T) {
 	ctx := ContextWithTx(context.Background(), tx)
 
 	err = testRepo.UpdateOne(ctx, `UPDATE test.food SET name = ? WHERE id = ?`, "apple", -1)
-	assert.True(t, errors.Is(err, ErrNotFound))
+	assert.True(t, errors.Is(err, ErrNothingUpdated))
 
 	res, err := tx.Exec(`INSERT INTO test.food (name) VALUES (?),(?)`, "apple", "orange")
 	require.NoError(t, err)
