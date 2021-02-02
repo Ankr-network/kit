@@ -16,12 +16,13 @@ var (
 	closer io.Closer
 )
 
-func InitJaegerWithConfig() io.Closer {
+func InitJaegerWithConfig() {
 	conf := MustLoadConfig()
-	return InitJaeger(conf)
+	InitJaeger(conf)
+	return
 }
 
-func InitJaeger(config *Config) io.Closer {
+func InitJaeger(config *Config) {
 	cfg := config.ToTraceConfiguration()
 	var (
 		err error
@@ -32,7 +33,13 @@ func InitJaeger(config *Config) io.Closer {
 		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
 	}
 	opentracing.SetGlobalTracer(tracer)
-	return closer
+	return
+}
+
+func Close() {
+	if closer != nil {
+		closer.Close()
+	}
 }
 
 func GlobalTracer() opentracing.Tracer {

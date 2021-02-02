@@ -7,8 +7,8 @@ import (
 )
 
 func TestTrace(t *testing.T) {
-	closer := InitJaegerWithConfig()
-	defer closer.Close()
+	InitJaegerWithConfig()
+	defer Close()
 
 	ctx, span := NewContextWithSpanName(context.Background(), "ctx-test")
 	defer span.Finish()
@@ -28,3 +28,4 @@ func testctx11(ctx context.Context) {
 	defer span.Finish()
 	time.Sleep(time.Millisecond * 100)
 }
+
