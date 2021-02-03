@@ -3,11 +3,9 @@ package trace
 import (
 	"context"
 	"fmt"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	opentracing "github.com/opentracing/opentracing-go"
 	jaeger "github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
-	"google.golang.org/grpc"
 	"io"
 )
 
@@ -46,14 +44,6 @@ func GlobalTracer() opentracing.Tracer {
 	return tracer
 }
 
-func TraceSpanServerInterceptor() grpc.UnaryServerInterceptor {
-	return otgrpc.OpenTracingServerInterceptor(tracer)
-}
-
-func TraceSpanClientInterceptor() grpc.UnaryClientInterceptor {
-	return otgrpc.OpenTracingClientInterceptor(tracer)
-}
-
 func StartSpan(name string) opentracing.Span {
 	return tracer.StartSpan(name)
 }
@@ -71,3 +61,5 @@ func SpanFromContext(ctx context.Context) opentracing.Span {
 func StartSpanFromContext(ctx context.Context, opentionName string) (opentracing.Span, context.Context) {
 	return opentracing.StartSpanFromContext(ctx, opentionName)
 }
+
+
