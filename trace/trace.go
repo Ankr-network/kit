@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	tracer opentracing.Tracer
-	closer io.Closer
+	tracer    opentracing.Tracer
+	closer    io.Closer
+	noopTrace = &opentracing.NoopTracer{}
 )
 
 func InitJaegerWithConfig() {
@@ -41,25 +42,38 @@ func Close() {
 }
 
 func GlobalTracer() opentracing.Tracer {
+	if tracer == nil {
+		return noopTrace
+	}
 	return tracer
 }
 
 func StartSpan(name string) opentracing.Span {
+	if tracer == nil {
+		return noopTrace.StartSpan(name)
+	}
 	return tracer.StartSpan(name)
 }
 
 func NewContextWithSpanName(ctx context.Context, spanName string) (newCtx context.Context, span opentracing.Span) {
+	if tracer == nil {
+		return ctx, noopTrace.StartSpan(spanName)
+	}
 	span = StartSpan(spanName)
 	newCtx = opentracing.ContextWithSpan(ctx, span)
 	return
 }
 
 func SpanFromContext(ctx context.Context) opentracing.Span {
+	if tracer == nil {
+		return noopTrace.StartSpan("")
+	}
 	return opentracing.SpanFromContext(ctx)
 }
 
 func StartSpanFromContext(ctx context.Context, opentionName string) (opentracing.Span, context.Context) {
+	if tracer == nil {
+		return noopTrace.StartSpan(opentionName), ctx
+	}
 	return opentracing.StartSpanFromContext(ctx, opentionName)
 }
-
-

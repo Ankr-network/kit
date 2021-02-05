@@ -21,6 +21,9 @@ func TraceSpanClientInterceptor() grpc.UnaryClientInterceptor {
 		method string, req, resp interface{},
 		cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption,
 	) (err error) {
+		if tracer == nil {
+			return invoker(ctx, method, req, resp, cc, opts...)
+		}
 		span := opentracing.SpanFromContext(ctx)
 		// Save current span context.
 		md, ok := metadata.FromOutgoingContext(ctx)
