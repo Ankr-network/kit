@@ -12,30 +12,48 @@ import (
 )
 
 func TraceSpanServerInterceptor() grpc.UnaryServerInterceptor {
-	return otgrpc.OpenTracingServerInterceptor(tracer)
+	if tracer == nil {
+		return func(
+			ctx context.Context,
+			req interface{},
+			info *grpc.UnaryServerInfo,
+			handler grpc.UnaryHandler,
+		) (resp interface{}, err error) {
+			return handler(ctx, req)
+		}
+	} else {
+		return otgrpc.OpenTracingServerInterceptor(tracer)
+	}
 }
 
 func TraceSpanClientInterceptor() grpc.UnaryClientInterceptor {
-	return func(
-		ctx context.Context,
-		method string, req, resp interface{},
-		cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption,
-	) (err error) {
-		if tracer == nil {
+	if tracer == nil {
+		return func(
+			ctx context.Context,
+			method string, req, resp interface{},
+			cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption,
+		) (err error) {
 			return invoker(ctx, method, req, resp, cc, opts...)
 		}
-		span := opentracing.SpanFromContext(ctx)
-		// Save current span context.
-		md, ok := metadata.FromOutgoingContext(ctx)
-		if !ok {
-			md = metadata.Pairs()
+	} else {
+		return func(
+			ctx context.Context,
+			method string, req, resp interface{},
+			cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption,
+		) (err error) {
+			span := opentracing.SpanFromContext(ctx)
+			// Save current span context.
+			md, ok := metadata.FromOutgoingContext(ctx)
+			if !ok {
+				md = metadata.Pairs()
+			}
+			if err = opentracing.GlobalTracer().Inject(
+				span.Context(), opentracing.HTTPHeaders, metadataTextMap(md),
+			); err != nil {
+				log.Print(ctx, "Failed to inject trace span: %v", err)
+			}
+			return invoker(metadata.NewOutgoingContext(ctx, md), method, req, resp, cc, opts...)
 		}
-		if err = opentracing.GlobalTracer().Inject(
-			span.Context(), opentracing.HTTPHeaders, metadataTextMap(md),
-		); err != nil {
-			log.Print(ctx, "Failed to inject trace span: %v", err)
-		}
-		return invoker(metadata.NewOutgoingContext(ctx, md), method, req, resp, cc, opts...)
 	}
 }
 
@@ -59,7 +77,7 @@ func (m metadataTextMap) Set(key, val string) {
 func (m metadataTextMap) ForeachKey(callback func(key, val string) error) error {
 	for k, vv := range m {
 		for _, v := range vv {
-			if err := callback(k, v);err != nil {
+			if err := callback(k, v); err != nil {
 				return err
 			}
 		}
