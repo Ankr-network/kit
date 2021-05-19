@@ -3,26 +3,40 @@ package reporter
 import (
 	"context"
 	"errors"
-	"github.com/dukex/mixpanel"
 	"sync"
 	"time"
 )
 
 const (
-	_apiURL = "https://api.mixpanel.com"
-
 	_defaultPoolNumber = 1000
 	_defaultTimeout    = 5 * time.Second
 )
 
+
+var (
+	reporter *Reporter
+	once     sync.Once
+)
+
+type communicant interface {
+	loadConfig() error
+	sendEvent(ctx context.Context, userID string, eventName string, properties map[string]interface{}) error
+}
+
+
+func Register(c ...communicant) []communicant {
+	return c
+}
+
+
 type Reporter struct {
 	err    error
-	client mixpanel.Mixpanel
 
 	timeout time.Duration
 	pool    chan struct{}
 
 	lock sync.RWMutex
+	communicants []communicant
 }
 
 type Opt func(t *Reporter)
@@ -37,12 +51,10 @@ type Result struct {
 	properties map[string]interface{}
 }
 
-var (
-	reporter *Reporter
-	once     sync.Once
-)
 
-var ErrTooManyCoroutines = errors.New("too many threads are created")
+var (
+	ErrTooManyCoroutines = errors.New("too many threads are created")
+)
 
 func init() {
 	reporter = &Reporter{
@@ -71,14 +83,13 @@ func (o Opts) apply(r *Reporter) {
 	}
 }
 
-func Init(cfg *Config, opts ...Opt) {
+func Init(c []communicant, opts ...Opt) {
 	once.Do(func() {
-		client := mixpanel.New(cfg.MixpanelToken, _apiURL)
 		reporter = &Reporter{
 			err:     nil,
-			client:  client,
 			timeout: _defaultTimeout,
 			pool:    make(chan struct{}, _defaultPoolNumber),
+			communicants: c,
 		}
 
 		for i := 0; i < _defaultPoolNumber; i++ {
@@ -86,6 +97,14 @@ func Init(cfg *Config, opts ...Opt) {
 		}
 
 		Opts(opts).apply(reporter)
+
+		for _, v := range c {
+			err := v.loadConfig()
+			if err != nil {
+				reporter.err = err
+			}
+		}
+
 	})
 }
 
@@ -94,7 +113,7 @@ func hookEvent(handler func(ctx context.Context) (chan *Result, error)) (chan *R
 		return nil, reporter.err
 	}
 
-	if err := acquireLock(); err != nil { // 1
+	if err := acquireLock(); err != nil {
 		return nil, err
 	}
 
@@ -107,13 +126,12 @@ func hookEvent(handler func(ctx context.Context) (chan *Result, error)) (chan *R
 	out := make(chan *Result, 1)
 	go func() {
 		defer func() {
-			freeLock() // 1
+			freeLock()
 			close(out)
 		}()
 		for {
 			select {
 			case <-ctx.Done():
-				//fmt.Println("timeout")
 				out <- &Result{
 					err: errors.New("report timeout"),
 				}
@@ -169,13 +187,11 @@ func trace(userID string, eventName string, properties map[string]interface{}) f
 				properties: properties,
 			}
 
-			err := reporter.client.Track(userID, eventName, &mixpanel.Event{
-				Properties: properties,
-			})
+			err := sendEvents(ctx, userID, eventName, properties)
 
 			if err != nil {
 				r.err = err
-				r.msg = "timeout"
+				r.msg = err.Error()
 			} else {
 				r.msg = "success"
 			}
@@ -184,6 +200,7 @@ func trace(userID string, eventName string, properties map[string]interface{}) f
 		return c, nil
 	}
 }
+
 
 func updateUser(userID string, properties map[string]interface{}) func(ctx context.Context) (chan *Result, error) {
 	return func(ctx context.Context) (chan *Result, error) {
@@ -202,14 +219,21 @@ func updateUser(userID string, properties map[string]interface{}) func(ctx conte
 				properties: properties,
 			}
 
-			err := reporter.client.Update(userID, &mixpanel.Update{
-				Operation:  "$set",
-				Properties: properties,
-			})
+			var err error
+			for idx, c := range reporter.communicants {
+				if mix, ok:= c.(*mixpanel); ok {
+					err = mix.updateUser(ctx, userID, properties)
+					break
+				}
+
+				if idx == len(reporter.communicants)-1 {
+					err = errors.New("error: mixpannel may not be registered")
+				}
+			}
 
 			if err != nil {
 				r.err = err
-				r.msg = "timeout"
+				r.msg = err.Error()
 			} else {
 				r.msg = "success"
 			}
@@ -218,3 +242,14 @@ func updateUser(userID string, properties map[string]interface{}) func(ctx conte
 		return c, nil
 	}
 }
+
+func sendEvents(ctx context.Context, userID string, eventName string, properties map[string]interface{}) error {
+	for _, c := range reporter.communicants {
+		err := c.sendEvent(ctx, userID, eventName, properties)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
