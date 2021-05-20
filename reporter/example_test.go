@@ -33,20 +33,22 @@ func TestUserSignUp(t *testing.T) {
 
 // 触发自定义事件
 func TestSendEventExample1(t *testing.T) {
-	_ = os.Setenv("SLACK_CHANNEL_ADDR", "https://hooks.slack.com/services/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")
+	_ = os.Setenv("SLACK_CHANNEL_ADDR", "https://hooks.slack.com/services/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")
 	_ = os.Setenv("MIXPANEL_TOKEN", "947bca6172a824b18b3ffae793196f44")
 	const channelName = "testchannel1"
 
-	//slack := NewSlack(channelName)
-	mixpanel := NewMixpanel()
+	slack := NewSlack(channelName)
+	//mixpanel := NewMixpanel()
 
-	Init(Register(mixpanel), WithTimeout(time.Second*5), WithMaxGoroutine(1000))
+	Init(Register(slack), WithTimeout(time.Second*5), WithMaxGoroutine(1000))
 
 	// logic here
 	userID := "feixiang1209"
 	eventName := "deploy app3"
 	properties := map[string]interface{}{
 		"deploy_way": "daily billing3",
+		"field2": "field2field2field2",
+		"field3": "asfsafsdfdsfs",
 	}
 
 	if c, err := HookEvent(userID, eventName, properties); err == nil {

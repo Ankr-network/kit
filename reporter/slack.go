@@ -96,7 +96,7 @@ func (s *slack) loadConfig() error {
 func (s *slack) sendEvent(ctx context.Context, userID string, eventName string, properties map[string]interface{}, eventFilter ...*EventFilter) error {
 	var propertyStr string
 	for k, v := range properties {
-		propertyStr += fmt.Sprintf("property:\t%s\nvalue:  \t\t%s\n\n", k, v)
+		propertyStr += fmt.Sprintf("%s: %s\n", k, v)
 	}
 
 	msg := fmt.Sprintf(eventTemplate, eventName, userID, propertyStr)
