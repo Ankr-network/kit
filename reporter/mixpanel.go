@@ -30,7 +30,13 @@ func (s *mixpanel) loadConfig() error {
 }
 
 
-func (s *mixpanel) sendEvent(ctx context.Context, userID string, eventName string, properties map[string]interface{}) error {
+func (s *mixpanel) sendEvent(ctx context.Context, userID string, eventName string, properties map[string]interface{}, eventFilter ...*EventFilter) error {
+	if len(eventFilter) > 0 {
+		if shouldSend := eventFilter[0].SendMixpanel; !shouldSend{
+			return nil
+		}
+	}
+
 	return s.client.Track(userID, eventName, &mixpanelapi.Event{
 		Properties: properties,
 	})
@@ -47,3 +53,6 @@ func (s *mixpanel) updateUser(ctx context.Context, userID string,  properties ma
 func (s *mixpanel) initClient(token string) {
 	s.client = mixpanelapi.New(token, _apiURL)
 }
+
+
+

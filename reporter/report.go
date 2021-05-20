@@ -20,14 +20,18 @@ var (
 
 type communicant interface {
 	loadConfig() error
-	sendEvent(ctx context.Context, userID string, eventName string, properties map[string]interface{}) error
+	sendEvent(ctx context.Context, userID string, eventName string, properties map[string]interface{}, eventFilter ...*EventFilter) error
 }
 
+// 没有传默认是所有注册的渠道都会通知, 传了需要每个字段都check
+type EventFilter struct {
+	SendMixpanel bool
+	SendSlackChannelNames []slackChannelName
+}
 
 func Register(c ...communicant) []communicant {
 	return c
 }
-
 
 type Reporter struct {
 	err    error
@@ -104,7 +108,6 @@ func Init(c []communicant, opts ...Opt) {
 				reporter.err = err
 			}
 		}
-
 	})
 }
 
@@ -161,15 +164,15 @@ func acquireLock() error {
 	return nil
 }
 
-func HookEvent(userID string, eventName string, properties map[string]interface{}) (chan *Result, error) {
-	return hookEvent(trace(userID, eventName, properties))
+func HookEvent(userID string, eventName string, properties map[string]interface{}, eventFilter ...*EventFilter) (chan *Result, error) {
+	return hookEvent(trace(userID, eventName, properties, eventFilter...))
 }
 
 func UpdateUser(userID string, properties map[string]interface{}) (chan *Result, error) {
 	return hookEvent(updateUser(userID, properties))
 }
 
-func trace(userID string, eventName string, properties map[string]interface{}) func(ctx context.Context) (chan *Result, error) {
+func trace(userID string, eventName string, properties map[string]interface{}, eventFilter ...*EventFilter) func(ctx context.Context) (chan *Result, error) {
 	return func(ctx context.Context) (chan *Result, error) {
 		if err := acquireLock(); err != nil {
 			return nil, ErrTooManyCoroutines
@@ -187,7 +190,7 @@ func trace(userID string, eventName string, properties map[string]interface{}) f
 				properties: properties,
 			}
 
-			err := sendEvents(ctx, userID, eventName, properties)
+			err := sendEvents(ctx, userID, eventName, properties, eventFilter...)
 
 			if err != nil {
 				r.err = err
@@ -243,13 +246,12 @@ func updateUser(userID string, properties map[string]interface{}) func(ctx conte
 	}
 }
 
-func sendEvents(ctx context.Context, userID string, eventName string, properties map[string]interface{}) error {
+func sendEvents(ctx context.Context, userID string, eventName string, properties map[string]interface{}, eventFilter ...*EventFilter) error {
 	for _, c := range reporter.communicants {
-		err := c.sendEvent(ctx, userID, eventName, properties)
+		err := c.sendEvent(ctx, userID, eventName, properties, eventFilter...)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-

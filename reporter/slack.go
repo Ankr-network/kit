@@ -1,11 +1,50 @@
 package reporter
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/caarlos0/env/v6"
+	"io/ioutil"
+	"net/http"
+	"time"
 )
+
+var eventTemplate = `{
+  "blocks": [
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "EventHook Coming"
+			}
+		},
+		{
+			"type": "section",
+			"fields": [
+				{
+					"type": "mrkdwn",
+					"text": "*EventName:*\n%s"
+				},
+				{
+					"type": "mrkdwn",
+					"text": "*UserID:*\n%s"
+				}
+			]
+		},
+		{
+			"type": "section",
+			"fields": [
+				{
+					"type": "mrkdwn",
+					"text": "*EventProperties:*\n%s"
+				}
+			]
+		}
+	]
+}`
+
 
 type (
 	slackChannelName = string
@@ -41,6 +80,10 @@ func (s *slack) loadConfig() error {
 		panic("slack config error, the length of slack channel name is not match length of container env:SLACK_CHANNEL_ADDR")
 	}
 
+	if lenAddr == 0 || lenName == 0{
+		panic("slack config error,make sure that env:SLACK_CHANNEL_ADDR is already set")
+	}
+
 	s.urls = make(map[string]string)
 	for i := 0; i < lenAddr; i ++ {
 		s.urls[s.ChannelNameArray[i]] = s.ChannelAddrArray[i]
@@ -50,9 +93,53 @@ func (s *slack) loadConfig() error {
 }
 
 
-func (s *slack) sendEvent(ctx context.Context, userID string, eventName string, properties map[string]interface{}) error {
-	fmt.Println("in slack events")
+func (s *slack) sendEvent(ctx context.Context, userID string, eventName string, properties map[string]interface{}, eventFilter ...*EventFilter) error {
+	var propertyStr string
+	for k, v := range properties {
+		propertyStr += fmt.Sprintf("property:\t%s\nvalue:  \t\t%s\n\n", k, v)
+	}
+
+	msg := fmt.Sprintf(eventTemplate, eventName, userID, propertyStr)
+
+	if len(eventFilter) > 0 {
+		channelNames := eventFilter[0].SendSlackChannelNames
+		if  channelNames == nil || len(channelNames) == 0 {
+			return nil
+		}
+
+		for _, cn := range channelNames {
+			if url, ok := s.urls[cn]; ok {
+				_, _, err := postJSON(ctx, url, msg)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+
+	for _, url := range s.urls {
+		_, _, err := postJSON(ctx, url, msg)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
+
+func postJSON(ctx context.Context, url string, body string) (int, string, error) {
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Post(url, "application/json", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		return -1, "", err
+	}
+	defer resp.Body.Close()
+
+	result, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return -1, "", err
+	}
+	return resp.StatusCode, string(result), nil
+}
