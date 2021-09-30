@@ -40,6 +40,23 @@ func NewClient(url string) *mongo.Client {
 	return client
 }
 
+func NewClientWithPool(url string, maxPoolSize uint64) *mongo.Client {
+	rb := bson.NewRegistryBuilder()
+	codec := &DecimalCodec{}
+	rb.RegisterCodec(tDecimal, codec)
+	register := rb.Build()
+	ctx := context.Background()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(url).SetMaxPoolSize(maxPoolSize).SetRegistry(register))
+	if err != nil {
+		log.Fatal("mongo.Connect error", zap.Error(err))
+	}
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		log.Fatal("client.Ping error", zap.Error(err))
+	}
+	return client
+}
+
 func (m *Repository) AddOne(ctx context.Context, entity interface{}) error {
 	if _, err := m.collection.InsertOne(ctx, entity); err != nil {
 		if IsDuplicateKeyError(err) {
